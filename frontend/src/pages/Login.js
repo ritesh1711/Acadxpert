@@ -37,7 +37,7 @@ export default function Login() {
     }
 
     try {
-      const url = "http://localhost:8000/auth/login"; // Replace with your backend URL
+      const url = "https://acadxpert.onrender.com/auth/login"; // Replace with your backend URL
       const response = await fetch(url, {
         method: "POST",
         headers: {
