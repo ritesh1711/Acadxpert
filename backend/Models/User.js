@@ -16,9 +16,13 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    role: {
+        type: String,
+        enum: ["user", "admin"], // Allowed values: "user" or "admin"
+        default: "user" // Default role is "user"
     }
-});
+}, { timestamps: true }); // Adds createdAt and updatedAt fields automatically
 
 const User = mongoose.model('User', userSchema);
-
 module.exports = User;

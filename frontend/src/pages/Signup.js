@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Corrected to lowercase 'useNavigate'
+import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -8,59 +8,55 @@ export default function Signup() {
     name: "",
     email: "",
     password: "",
+    role: "user", // Default role is "user"
   });
 
-  const navigate = useNavigate(); // Corrected to lowercase 'navigate'
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target; // Get name and value from the event target
+    const { name, value } = e.target;
     setSignupInfo((prevState) => ({
       ...prevState,
-      [name]: value, // Update the corresponding field value in state
+      [name]: value,
     }));
   };
 
   const handleSignup = async (e) => {
-    e.preventDefault(); // Prevent form submission
+    e.preventDefault();
 
-    const { name, email, password } = signupInfo;
+    const { name, email, password, role } = signupInfo;
 
-    // ✅ Check if all fields are filled
     if (!name || !email || !password) {
       toast.error("All fields are required");
       return;
     }
 
-    // ✅ Check password length (min: 6 characters)
     if (password.length < 4) {
       toast.error("Password must be at least 4 characters long");
       return;
     }
 
     try {
-      const url = "https://acadxpert.onrender.com/auth/signup"; // Replace with your backend URL
+      const url = "https://acadxpert.onrender.com/auth/signup"; // Backend URL
       const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }), // Include role in the request
       });
 
       const result = await response.json();
       console.log(result);
-      const { success, message, error } = result;
+      const { success, message } = result;
 
       if (success) {
         toast.success(message);
         setTimeout(() => {
-          navigate("/login"); // Redirect to login page after success
+          navigate("/login");
         }, 1000);
-      } else if (error) {
-        const details = error?.details?.[0]?.message || "Signup failed!";
-        toast.error(details);
-      }else if(!success){
-        toast.error(message);
+      } else {
+        toast.error(message || "Signup failed!");
       }
     } catch (err) {
       toast.error("Something went wrong! Please try again.");
@@ -69,7 +65,6 @@ export default function Signup() {
 
   return (
     <div className="flex min-h-screen bg-gray-100 items-center justify-center">
-      {/* Toast Notification Container */}
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="w-full max-w-lg p-8 bg-white shadow-lg rounded-lg">
@@ -103,7 +98,7 @@ export default function Signup() {
             />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
             <input
               type="password"
@@ -114,6 +109,21 @@ export default function Signup() {
               value={signupInfo.password}
               required
             />
+          </div>
+
+          {/* Role Selection Dropdown */}
+          <div className="mb-6">
+            <label htmlFor="role" className="block text-sm font-medium text-gray-600">Select Role</label>
+            <select
+              id="role"
+              name="role"
+              value={signupInfo.role}
+              onChange={handleChange}
+              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="user">Student</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <button

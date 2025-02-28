@@ -7,57 +7,61 @@ export default function Login() {
   const [loginInfo, setLoginInfo] = useState({
     email: "",
     password: "",
+    rememberMe: false, // New remember me option
   });
 
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setLoginInfo((prevState) => ({
       ...prevState,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const { email, password } = loginInfo;
+    const { email, password, rememberMe } = loginInfo;
 
-    // ✅ Check if all fields are filled
     if (!email || !password) {
       toast.error("Both email and password are required!");
       return;
     }
 
-    // ✅ Check password length (min: 4 characters)
     if (password.length < 4) {
       toast.error("Password must be at least 4 characters long");
       return;
     }
 
     try {
-      const url = "https://acadxpert.onrender.com/auth/login"; // Replace with your backend URL
+      const url = "https://acadxpert.onrender.com/auth/login"; // Backend URL
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const result = await response.json();
       console.log(result);
-      const { success, message, jwtToken, error } = result;
+      const { success, message, jwtToken, role } = result;
 
       if (success) {
         toast.success("Login successful!");
-        localStorage.setItem("token", jwtToken); // Store JWT token
+
+        // Store token in localStorage or sessionStorage based on "Remember Me"
+        if (rememberMe) {
+          localStorage.setItem("token", jwtToken);
+          localStorage.setItem("role", role);
+        } else {
+          sessionStorage.setItem("token", jwtToken);
+          sessionStorage.setItem("role", role);
+        }
+
         setTimeout(() => {
-          navigate("/home"); // Redirect to home page after success
+          role === "admin" ? navigate("/admin-dashboard") : navigate("/home");
         }, 1000);
-      } else if (error) {
-        toast.error(error.details?.[0]?.message || "Login failed!");
       } else {
         toast.error(message || "Invalid credentials!");
       }
@@ -68,25 +72,15 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen bg-gray-100 items-center justify-center">
-      {/* Toast Notification Container */}
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="w-full max-w-lg p-8 bg-white shadow-lg rounded-lg">
-        <h1 className="text-3xl font-bold text-center mb-6 text-blue-500">
-          AcadXpert
-        </h1>
-        <h2 className="text-xl font-semibold text-center mb-4 text-gray-700">
-          Login
-        </h2>
+        <h1 className="text-3xl font-bold text-center mb-6 text-blue-500">AcadXpert</h1>
+        <h2 className="text-xl font-semibold text-center mb-4 text-gray-700">Login</h2>
 
         <form onSubmit={handleLogin}>
           <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Email Address
-            </label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-600">Email Address</label>
             <input
               type="email"
               onChange={handleChange}
@@ -98,13 +92,8 @@ export default function Login() {
             />
           </div>
 
-          <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-600"
-            >
-              Password
-            </label>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
             <input
               type="password"
               onChange={handleChange}
@@ -114,6 +103,19 @@ export default function Login() {
               value={loginInfo.password}
               required
             />
+          </div>
+
+          {/* Remember Me Checkbox */}
+          <div className="mb-6 flex items-center">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              name="rememberMe"
+              className="mr-2"
+              checked={loginInfo.rememberMe}
+              onChange={handleChange}
+            />
+            <label htmlFor="rememberMe" className="text-sm text-gray-600">Remember Me</label>
           </div>
 
           <button
@@ -126,9 +128,7 @@ export default function Login() {
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
-          <a href="/signup" className="text-blue-500 hover:underline">
-            Sign up here
-          </a>
+          <a href="/signup" className="text-blue-500 hover:underline">Sign up here</a>
         </p>
       </div>
     </div>
