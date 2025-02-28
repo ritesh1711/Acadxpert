@@ -8,7 +8,7 @@ export default function Signup() {
     name: "",
     email: "",
     password: "",
-    role: "student", // ✅ Default role is "student"
+    role: "student", // ✅ Default role
   });
 
   const navigate = useNavigate();
@@ -25,10 +25,13 @@ export default function Signup() {
     e.preventDefault();
     const { name, email, password, role } = signupInfo;
 
-    console.log("Sending data:", { name, email, password, role }); // ✅ Debug log
-
     if (!name || !email || !password) {
       toast.error("All fields are required");
+      return;
+    }
+
+    if (password.length < 4) {
+      toast.error("Password must be at least 4 characters long");
       return;
     }
 
@@ -36,17 +39,17 @@ export default function Signup() {
       const response = await fetch("https://acadxpert.onrender.com/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }), // ✅ Ensure role is correct
+        body: JSON.stringify({ name, email, password, role }),
       });
 
       const result = await response.json();
-      console.log("Response:", result); // ✅ Debug response
+      console.log("Response:", result);
 
-      if (response.ok) {
+      if (result.success) {
         toast.success(result.message);
         setTimeout(() => navigate("/login"), 1000);
       } else {
-        toast.error(result.errors?.join(", ") || "Signup failed!");
+        toast.error(result.message || "Signup failed!");
       }
     } catch (err) {
       toast.error("Something went wrong! Please try again.");
@@ -56,85 +59,57 @@ export default function Signup() {
   return (
     <div className="flex min-h-screen bg-gray-100 items-center justify-center">
       <ToastContainer position="top-right" autoClose={3000} />
-
-      <div className="w-full max-w-lg p-8 bg-white shadow-lg rounded-lg">
+      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
         <h1 className="text-3xl font-bold text-center mb-6 text-blue-500">AcadXpert</h1>
         <h2 className="text-xl font-semibold text-center mb-4 text-gray-700">Sign Up</h2>
 
-        <form onSubmit={handleSignup}>
-          {/* Name Input */}
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-600">Full Name</label>
-            <input
-              type="text"
-              onChange={handleChange}
-              id="name"
-              name="name"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={signupInfo.name}
-              required
-            />
-          </div>
+        <form onSubmit={handleSignup} className="space-y-4">
+          <input
+            type="text"
+            name="name"
+            placeholder="Full Name"
+            onChange={handleChange}
+            value={signupInfo.name}
+            required
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            onChange={handleChange}
+            value={signupInfo.email}
+            required
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            onChange={handleChange}
+            value={signupInfo.password}
+            required
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+          />
 
-          {/* Email Input */}
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-600">Email Address</label>
-            <input
-              type="email"
-              onChange={handleChange}
-              id="email"
-              name="email"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={signupInfo.email}
-              required
-            />
-          </div>
+          <select
+            name="role"
+            onChange={handleChange}
+            value={signupInfo.role}
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+            <option value="admin">Admin</option>
+          </select>
 
-          {/* Password Input */}
-          <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
-            <input
-              type="password"
-              onChange={handleChange}
-              id="password"
-              name="password"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={signupInfo.password}
-              required
-            />
-          </div>
-
-          {/* Role Selection Dropdown */}
-          <div className="mb-6">
-            <label htmlFor="role" className="block text-sm font-medium text-gray-600">Select Role</label>
-            <select
-              id="role"
-              name="role"
-              value={signupInfo.role}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="student">Student</option>
-              <option value="faculty">Faculty</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
           >
             Sign Up
           </button>
         </form>
-
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <a href="/login" className="text-blue-500 hover:underline">
-            Login here
-          </a>
-        </p>
       </div>
     </div>
   );

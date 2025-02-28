@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,10 +7,18 @@ export default function Login() {
   const [loginInfo, setLoginInfo] = useState({
     email: "",
     password: "",
-    rememberMe: false, // New remember me option
+    rememberMe: false, // ✅ Remember Me option
   });
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect if already logged in
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) {
+      navigate("/home"); // Adjust based on user role if needed
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -36,7 +44,7 @@ export default function Login() {
     }
 
     try {
-      const url = "https://acadxpert.onrender.com/auth/login"; // Backend URL
+      const url = `${import.meta.env.VITE_API_URL}/auth/login`; // ✅ Dynamic API URL
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +58,7 @@ export default function Login() {
       if (success) {
         toast.success("Login successful!");
 
-        // Store token in localStorage or sessionStorage based on "Remember Me"
+        // ✅ Secure token storage (Consider using httpOnly cookies instead)
         if (rememberMe) {
           localStorage.setItem("token", jwtToken);
           localStorage.setItem("role", role);

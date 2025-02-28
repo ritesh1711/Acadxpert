@@ -21,8 +21,9 @@ const signup = async (req, res) => {
             name, 
             email, 
             password: hashedPassword, 
-            role: role || "user" // Default role is "user"
+            role // Remove the "|| user" part
         });
+        
 
         await newUser.save();
 
