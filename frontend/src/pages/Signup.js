@@ -8,7 +8,7 @@ export default function Signup() {
     name: "",
     email: "",
     password: "",
-    role: "user", // Default role is "user"
+    role: "student", // ✅ Default role is "student"
   });
 
   const navigate = useNavigate();
@@ -23,40 +23,30 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-
     const { name, email, password, role } = signupInfo;
+
+    console.log("Sending data:", { name, email, password, role }); // ✅ Debug log
 
     if (!name || !email || !password) {
       toast.error("All fields are required");
       return;
     }
 
-    if (password.length < 4) {
-      toast.error("Password must be at least 4 characters long");
-      return;
-    }
-
     try {
-      const url = "https://acadxpert.onrender.com/auth/signup"; // Backend URL
-      const response = await fetch(url, {
+      const response = await fetch("https://acadxpert.onrender.com/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password, role }), // Include role in the request
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }), // ✅ Ensure role is correct
       });
 
       const result = await response.json();
-      console.log(result);
-      const { success, message } = result;
+      console.log("Response:", result); // ✅ Debug response
 
-      if (success) {
-        toast.success(message);
-        setTimeout(() => {
-          navigate("/login");
-        }, 1000);
+      if (response.ok) {
+        toast.success(result.message);
+        setTimeout(() => navigate("/login"), 1000);
       } else {
-        toast.error(message || "Signup failed!");
+        toast.error(result.errors?.join(", ") || "Signup failed!");
       }
     } catch (err) {
       toast.error("Something went wrong! Please try again.");
@@ -72,6 +62,7 @@ export default function Signup() {
         <h2 className="text-xl font-semibold text-center mb-4 text-gray-700">Sign Up</h2>
 
         <form onSubmit={handleSignup}>
+          {/* Name Input */}
           <div className="mb-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-600">Full Name</label>
             <input
@@ -85,6 +76,7 @@ export default function Signup() {
             />
           </div>
 
+          {/* Email Input */}
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-600">Email Address</label>
             <input
@@ -98,6 +90,7 @@ export default function Signup() {
             />
           </div>
 
+          {/* Password Input */}
           <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
             <input
@@ -121,11 +114,13 @@ export default function Signup() {
               onChange={handleChange}
               className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="user">Student</option>
+              <option value="student">Student</option>
+              <option value="faculty">Faculty</option>
               <option value="admin">Admin</option>
             </select>
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             className="w-full py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
