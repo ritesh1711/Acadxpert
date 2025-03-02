@@ -44,7 +44,7 @@ export default function Login() {
     }
 
     try {
-      const url = `${import.meta.env.VITE_API_URL}/auth/login`; // ✅ Dynamic API URL
+      const url = "https://acadxpert8.onrender.com/auth/login"; // Replace with your backend URL
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

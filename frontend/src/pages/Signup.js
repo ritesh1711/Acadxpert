@@ -36,7 +36,8 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch("https://acadxpert.onrender.com/auth/signup", {
+      const url = "https://acadxpert8.onrender.com/auth/signup"; // Replace with your backend URL
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role }),
