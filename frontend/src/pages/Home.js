@@ -1,42 +1,67 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Home() {
-  const [userName, setUserName] = useState("User"); // Default to "User"
+export default function Navbar() {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [user] = useState({
+    name: "Abhishek",
+    email: "Abhishek@gmail.com",
+    course: "MCA",
+  });
+
   const navigate = useNavigate();
 
-  // Fetch user details from localStorage when component mounts
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const name = localStorage.getItem("name");
+  const toggleProfileDropdown = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
 
-    if (!token) {
-      navigate("/login"); // Redirect if no token found
-    } else {
-      setUserName(name || "User"); // Set name or default to "User"
-    }
-  }, [navigate]);
-
-  // Logout function
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("name");
-    localStorage.removeItem("email");
-    navigate("/login"); // Redirect to login
+    localStorage.clear();
+    navigate("/login");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 shadow-lg rounded-lg max-w-md text-center">
-        <h1 className="text-3xl font-bold text-blue-500">Welcome, abhi! 🎉</h1>
-        <p className="mt-2 text-gray-600">You're successfully logged in.</p>
-        
-        <button
-          onClick={handleLogout}
-          className="mt-6 bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 focus:outline-none"
-        >
-          Logout
-        </button>
+    <div>
+      {/* Navbar */}
+      <nav className="bg-blue-500 p-4 flex justify-between items-center">
+        <div className="text-white text-xl font-bold">My App</div>
+
+        <div className="relative">
+          {/* Profile Section */}
+          <button
+            onClick={toggleProfileDropdown}
+            className="text-white px-4 py-2 rounded-md focus:outline-none"
+          >
+            {user.name} 👤
+          </button>
+
+          {/* Profile Dropdown */}
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+              <p className="font-semibold">Profile</p>
+              <div className="mt-2">
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Course:</strong> {user.course}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="mt-4 w-full bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Content Area */}
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 shadow-lg rounded-lg text-center">
+          <h1 className="text-3xl font-bold text-blue-500">
+            Welcome, {user.name}! 🎉
+          </h1>
+          <p className="mt-2 text-gray-600">You're successfully logged in.</p>
+        </div>
       </div>
     </div>
   );
