@@ -7,6 +7,7 @@
     "@tailwindcss/vite": "^4.0.3",
     "autoprefixer": "^10.4.20",
     "cra-template": "1.2.0",
+    "lucide-react": "^0.487.0",
     "postcss": "^8.5.1",
     "postcss-loader": "^8.1.1",
     "react": "^19.0.0",

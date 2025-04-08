@@ -86,10 +86,10 @@ export default function Home() {
                     {/* Attendance Card */}
                     <div
                         className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition cursor-pointer"
-                        onClick={() => navigate("/attendance")}
+                        onClick={() => navigate("/admission")}
                     >
-                        <h2 className="text-2xl font-bold text-blue-500 mb-2">📅 Attendance</h2>
-                        <p className="text-gray-600">Check your attendance records.</p>
+                            <h2 className="text-2xl font-bold text-purple-500 mb-2">📝 Admission Form</h2>
+                            <p className="text-gray-600">Fill out and submit your admission details.</p>
                     </div>
 
                     {/* Circular Card */}

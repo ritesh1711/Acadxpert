@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import Home from './pages/Home';
 import RefreshHandler from './RefreshHandler';
 import StudentProfile from './pages/StudentProfile';
+import AdmissionForm from './pages/AdmissionForm';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,6 +25,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/home" element={<PrivateRoute element={<Home />} />} />
         <Route path="/StudentProfile" element={<StudentProfile />} />
+        <Route path="/admission" element={<AdmissionForm />} />
       </Routes>
     </div>
   );
