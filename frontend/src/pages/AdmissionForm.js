@@ -11,16 +11,22 @@ export default function AdmissionForm() {
       alert("Please agree to the declaration to proceed.");
       return;
     }
-    navigate("/next-page");
+    navigate("/Nextpageupload"); // ✅ Updated to match your route
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="bg-white p-6 rounded-lg shadow-lg mb-10">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-blue-800">Centre for Development of Advanced Computing</h1>
-          <p className="text-md">B-30, Institutional Area, Sector 62, Noida – 201 309</p>
-          <h2 className="text-xl font-semibold text-blue-600 mt-2">MCA Programme (1<sup>st</sup> Year - 1<sup>st</sup> Semester) 2024–2025</h2>
+          <h1 className="text-2xl font-bold text-blue-800">
+            Centre for Development of Advanced Computing
+          </h1>
+          <p className="text-md">
+            B-30, Institutional Area, Sector 62, Noida – 201 309
+          </p>
+          <h2 className="text-xl font-semibold text-blue-600 mt-2">
+            MCA Programme (1<sup>st</sup> Year - 1<sup>st</sup> Semester) 2024–2025
+          </h2>
         </div>
       </div>
 

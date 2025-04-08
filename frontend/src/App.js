@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import RefreshHandler from './RefreshHandler';
 import StudentProfile from './pages/StudentProfile';
 import AdmissionForm from './pages/AdmissionForm';
+import Nextpageupload from './pages/Nextpageupload';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,6 +27,7 @@ function App() {
         <Route path="/home" element={<PrivateRoute element={<Home />} />} />
         <Route path="/StudentProfile" element={<StudentProfile />} />
         <Route path="/admission" element={<AdmissionForm />} />
+        <Route path="/Nextpageupload" element={<Nextpageupload/>} />
       </Routes>
     </div>
   );
