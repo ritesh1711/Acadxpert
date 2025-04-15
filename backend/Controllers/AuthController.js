@@ -12,7 +12,11 @@ const signup = async (req, res) => {
                 .json({ message: 'User already exists, you can login', success: false });
         }
 
-        const userModel = new UserModel({ name, email, password });
+        const userModel = new UserModel({ 
+            name, 
+            email, 
+            password
+        });
         userModel.password = await bcrypt.hash(password, 10);
         await userModel.save();
         res.status(201)
@@ -21,6 +25,7 @@ const signup = async (req, res) => {
                 success: true
             });
     } catch (err) {
+        console.error("Signup error:", err);
         res.status(500)
             .json({
                 message: "Internal server error",
@@ -47,7 +52,10 @@ const login = async (req, res) => {
         }
 
         const jwtToken = jwt.sign(
-            {email:user.email, _id: user.id},
+            {
+                email: user.email, 
+                _id: user.id
+            },
             process.env.JWT_SECRET,
             {expiresIn:"24h"}
         )
@@ -58,9 +66,10 @@ const login = async (req, res) => {
                 success: true,
                 jwtToken,
                 email,
-                name : user.name 
+                name: user.name
             });
     } catch (err) {
+        console.error("Login error:", err);
         res.status(500)
             .json({
                 message: "Internal server error",

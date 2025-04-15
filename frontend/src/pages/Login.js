@@ -48,13 +48,15 @@ export default function Login() {
 
       const result = await response.json();
       console.log(result);
-      const { success, message, jwtToken, error } = result;
+      const { success, message, jwtToken, error, name } = result;
 
       if (success) {
         toast.success("Login successful!");
         localStorage.setItem("token", jwtToken); // Store JWT token
+        localStorage.setItem("name", name); // Store name
+        
         setTimeout(() => {
-          navigate("/home"); // Redirect to home page after success
+          navigate("/home");
         }, 1000);
       } else if (error) {
         toast.error(error.details?.[0]?.message || "Login failed!");
@@ -67,20 +69,20 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100 items-center justify-center">
+    <div className="flex min-h-screen bg-gray-100 items-center justify-center p-3">
       {/* Toast Notification Container */}
       <ToastContainer position="top-right" autoClose={3000} />
 
-      <div className="w-full max-w-lg p-8 bg-white shadow-lg rounded-lg">
-        <h1 className="text-3xl font-bold text-center mb-6 text-blue-500">
+      <div className="w-full max-w-md p-4 sm:p-8 bg-white shadow-lg rounded-lg">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-blue-500">
           AcadXpert
         </h1>
-        <h2 className="text-xl font-semibold text-center mb-4 text-gray-700">
+        <h2 className="text-lg sm:text-xl font-semibold text-center mb-3 sm:mb-4 text-gray-700">
           Login
         </h2>
 
         <form onSubmit={handleLogin}>
-          <div className="mb-4">
+          <div className="mb-3 sm:mb-4">
             <label
               htmlFor="email"
               className="block text-sm font-medium text-gray-600"
@@ -92,13 +94,13 @@ export default function Login() {
               onChange={handleChange}
               id="email"
               name="email"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 mt-1 sm:mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               value={loginInfo.email}
               required
             />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <label
               htmlFor="password"
               className="block text-sm font-medium text-gray-600"
@@ -110,7 +112,7 @@ export default function Login() {
               onChange={handleChange}
               id="password"
               name="password"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 mt-1 sm:mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               value={loginInfo.password}
               required
             />
@@ -118,13 +120,13 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            className="w-full py-2 bg-blue-500 text-white font-semibold text-sm rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
             Login
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-xs sm:text-sm text-gray-600">
           Don't have an account?{" "}
           <a href="/signup" className="text-blue-500 hover:underline">
             Sign up here
