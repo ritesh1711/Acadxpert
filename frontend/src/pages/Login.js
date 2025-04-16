@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -48,15 +48,21 @@ export default function Login() {
 
       const result = await response.json();
       console.log(result);
-      const { success, message, jwtToken, error, name } = result;
+      const { success, message, jwtToken, error, name, isAdmin } = result;
 
       if (success) {
         toast.success("Login successful!");
         localStorage.setItem("token", jwtToken); // Store JWT token
         localStorage.setItem("name", name); // Store name
+        localStorage.setItem("isAdmin", isAdmin || false); // Store admin status
         
         setTimeout(() => {
-          navigate("/home");
+          // Redirect to admin dashboard if admin, otherwise to home
+          if (isAdmin) {
+            navigate("/admin/dashboard");
+          } else {
+            navigate("/home");
+          }
         }, 1000);
       } else if (error) {
         toast.error(error.details?.[0]?.message || "Login failed!");
@@ -128,10 +134,19 @@ export default function Login() {
 
         <p className="mt-4 text-center text-xs sm:text-sm text-gray-600">
           Don't have an account?{" "}
-          <a href="/signup" className="text-blue-500 hover:underline">
+          <Link to="/signup" className="text-blue-500 hover:underline">
             Sign up here
-          </a>
+          </Link>
         </p>
+        
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="text-center text-xs sm:text-sm text-gray-600">
+            Are you an administrator?{" "}
+            <Link to="/admin/login" className="text-blue-500 hover:underline">
+              Login to admin panel
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

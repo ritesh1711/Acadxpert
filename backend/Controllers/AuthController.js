@@ -54,7 +54,8 @@ const login = async (req, res) => {
         const jwtToken = jwt.sign(
             {
                 email: user.email, 
-                _id: user.id
+                _id: user.id,
+                isAdmin: user.isAdmin
             },
             process.env.JWT_SECRET,
             {expiresIn:"24h"}
@@ -66,7 +67,8 @@ const login = async (req, res) => {
                 success: true,
                 jwtToken,
                 email,
-                name: user.name
+                name: user.name,
+                isAdmin: user.isAdmin
             });
     } catch (err) {
         console.error("Login error:", err);
