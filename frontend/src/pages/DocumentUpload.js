@@ -5,13 +5,42 @@ import axios from "axios";
 export default function DocumentUpload() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState({
+    // Required documents
     photo: null,
     signature: null,
+    
+    // Educational documents
     marksheet10th: null,
+    certificate10th: null,
     marksheet12th: null,
+    certificate12th: null,
     graduationMarksheet: null,
+    
+    // Semester marksheets
+    semester1: null,
+    semester2: null,
+    semester3: null,
+    semester4: null,
+    semester5: null,
+    semester6: null,
+    semester7: null,
+    semester8: null,
+    
+    // Entrance exam documents
+    entranceAdmitCard: null,
+    entranceScoreCard: null,
+    
+    // Other documents
     provisionalCertificate: null,
-    characterCertificate: null
+    characterCertificate: null,
+    provisionalAdmissionSlip: null,
+    paymentSlip: null,
+    studyCentreProof: null,
+    medicalCertificate: null,
+    categoryCertificate: null,
+    defenceCertificate: null,
+    aadhaarCard: null,
+    panCard: null
   });
   const [uploadStatus, setUploadStatus] = useState({});
   const [allUploaded, setAllUploaded] = useState(false);
@@ -98,8 +127,11 @@ export default function DocumentUpload() {
         [documentType]: true
       };
       
-      const allUploaded = Object.values(updatedStatus).every(status => status === true);
-      setAllUploaded(allUploaded);
+      // We only care if required documents are uploaded
+      const requiredUploaded = ['photo', 'signature'].every(
+        doc => updatedStatus[doc] || false
+      );
+      setAllUploaded(requiredUploaded);
     }
   };
 
@@ -294,167 +326,502 @@ export default function DocumentUpload() {
 
       <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-8 rounded-lg shadow-lg space-y-4 sm:space-y-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-700 mb-2 sm:mb-4">Document Upload</h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-6">Please upload the following documents in PDF or image format.</p>
+        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-6">
+          Please upload the following documents in PDF or image format.<br/>
+          <span className="text-red-500 font-bold">*</span> indicates required documents.
+        </p>
         
         <div className="space-y-4 sm:space-y-6">
-          {/* Photo Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">1. Recent Photograph</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload a recent passport-sized photograph (JPG/PNG)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="photo"
-                onChange={(e) => handleFileChange(e, 'photo')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept="image/*"
-              />
-              {uploadStatus.photo && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
+          {/* Required Documents Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-3">Required Documents</h3>
+            
+            {/* Photo Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">
+                1. Recent Photograph <span className="text-red-500">*</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload a recent passport-sized photograph (JPG/PNG)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="photo"
+                  onChange={(e) => handleFileChange(e, 'photo')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept="image/*"
+                />
+                {uploadStatus.photo && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* Signature Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">
+                2. Signature <span className="text-red-500">*</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your signature (JPG/PNG)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="signature"
+                  onChange={(e) => handleFileChange(e, 'signature')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept="image/*"
+                />
+                {uploadStatus.signature && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Educational Documents Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-3">Educational Documents</h3>
+
+            {/* 10th Marksheet Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">10th Marksheet</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 10th standard marksheet (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="marksheet10th"
+                  onChange={(e) => handleFileChange(e, 'marksheet10th')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.marksheet10th && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* 10th Certificate Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">10th Passing Certificate</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 10th standard passing certificate (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="certificate10th"
+                  onChange={(e) => handleFileChange(e, 'certificate10th')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.certificate10th && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* 12th Marksheet Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">12th Marksheet</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 12th standard marksheet (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="marksheet12th"
+                  onChange={(e) => handleFileChange(e, 'marksheet12th')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.marksheet12th && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* 12th Certificate Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">12th Passing Certificate</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 12th standard passing certificate (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="certificate12th"
+                  onChange={(e) => handleFileChange(e, 'certificate12th')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.certificate12th && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* Graduation Marksheet Upload */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Graduation Marksheet</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your graduation marksheet (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="graduationMarksheet"
+                  onChange={(e) => handleFileChange(e, 'graduationMarksheet')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.graduationMarksheet && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Signature Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">2. Signature</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your signature (JPG/PNG)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="signature"
-                onChange={(e) => handleFileChange(e, 'signature')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept="image/*"
-              />
-              {uploadStatus.signature && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
+          {/* Semester Marksheets Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-3">Semester Marksheets</h3>
+            
+            {/* Create semester inputs 1-8 */}
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+              <div key={sem} className="border p-3 sm:p-4 rounded-lg mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Semester {sem} Marksheet</h3>
+                <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your semester {sem} marksheet (PDF)</p>
+                <div className="flex items-center flex-wrap">
+                  <input
+                    type="file"
+                    id={`semester${sem}`}
+                    onChange={(e) => handleFileChange(e, `semester${sem}`)}
+                    className="block w-full text-xs sm:text-sm text-gray-500
+                      file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                      file:rounded-full file:border-0
+                      file:text-xs file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    accept=".pdf"
+                  />
+                  {uploadStatus[`semester${sem}`] && (
+                    <span className="ml-2 text-green-500">✓</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Entrance Exam Documents Section */}
+          <div className="border-b pb-4">
+            <h3 className="text-md font-semibold text-gray-800 mb-3">Entrance Exam Documents</h3>
+            
+            {/* Entrance Admit Card */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">NIMCET/CET Admit Card</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your entrance exam admit card (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="entranceAdmitCard"
+                  onChange={(e) => handleFileChange(e, 'entranceAdmitCard')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.entranceAdmitCard && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Entrance Score Card */}
+            <div className="border p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">NIMCET/CET Score Card</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your entrance exam score card (PDF)</p>
+              <div className="flex items-center flex-wrap">
+                <input
+                  type="file"
+                  id="entranceScoreCard"
+                  onChange={(e) => handleFileChange(e, 'entranceScoreCard')}
+                  className="block w-full text-xs sm:text-sm text-gray-500
+                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                    file:rounded-full file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                  accept=".pdf"
+                />
+                {uploadStatus.entranceScoreCard && (
+                  <span className="ml-2 text-green-500">✓</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* 10th Marksheet Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">3. 10th Marksheet</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 10th standard marksheet (PDF)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="marksheet10th"
-                onChange={(e) => handleFileChange(e, 'marksheet10th')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept=".pdf"
-              />
-              {uploadStatus.marksheet10th && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
+          {/* Other Documents Section */}
+          <div>
+            <h3 className="text-md font-semibold text-gray-800 mb-3">Other Documents</h3>
+            
+            {/* Add form fields for the remaining document types */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First column */}
+              <div>
+                {/* Provisional Certificate */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Provisional Certificate</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="provisionalCertificate"
+                      onChange={(e) => handleFileChange(e, 'provisionalCertificate')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.provisionalCertificate && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Character Certificate */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Character Certificate</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="characterCertificate"
+                      onChange={(e) => handleFileChange(e, 'characterCertificate')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.characterCertificate && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Provisional Admission Slip */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Provisional Admission Slip</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="provisionalAdmissionSlip"
+                      onChange={(e) => handleFileChange(e, 'provisionalAdmissionSlip')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.provisionalAdmissionSlip && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Payment Slip */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Payment Slip</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="paymentSlip"
+                      onChange={(e) => handleFileChange(e, 'paymentSlip')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.paymentSlip && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Second column */}
+              <div>
+                {/* Study Centre Proof */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Study Centre Proof</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="studyCentreProof"
+                      onChange={(e) => handleFileChange(e, 'studyCentreProof')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.studyCentreProof && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Medical Certificate */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Medical Certificate</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="medicalCertificate"
+                      onChange={(e) => handleFileChange(e, 'medicalCertificate')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.medicalCertificate && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Category Certificate */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Reserved Category Certificate</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="categoryCertificate"
+                      onChange={(e) => handleFileChange(e, 'categoryCertificate')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.categoryCertificate && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Defence/PH Certificate */}
+                <div className="border p-3 sm:p-4 rounded-lg mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Defense/PH Certificate</h3>
+                  <div className="flex items-center flex-wrap">
+                    <input
+                      type="file"
+                      id="defenceCertificate"
+                      onChange={(e) => handleFileChange(e, 'defenceCertificate')}
+                      className="block w-full text-xs sm:text-sm text-gray-500
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      accept=".pdf"
+                    />
+                    {uploadStatus.defenceCertificate && (
+                      <span className="ml-2 text-green-500">✓</span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* 12th Marksheet Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">4. 12th Marksheet</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your 12th standard marksheet (PDF)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="marksheet12th"
-                onChange={(e) => handleFileChange(e, 'marksheet12th')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept=".pdf"
-              />
-              {uploadStatus.marksheet12th && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
-            </div>
-          </div>
-
-          {/* Graduation Marksheet Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">5. Graduation Marksheet</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your graduation marksheet (PDF)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="graduationMarksheet"
-                onChange={(e) => handleFileChange(e, 'graduationMarksheet')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept=".pdf"
-              />
-              {uploadStatus.graduationMarksheet && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
-            </div>
-          </div>
-
-          {/* Provisional Certificate Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">6. Provisional Certificate</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your provisional certificate (PDF)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="provisionalCertificate"
-                onChange={(e) => handleFileChange(e, 'provisionalCertificate')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept=".pdf"
-              />
-              {uploadStatus.provisionalCertificate && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
-            </div>
-          </div>
-
-          {/* Character Certificate Upload */}
-          <div className="border p-3 sm:p-4 rounded-lg">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">7. Character Certificate</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Upload your character certificate (PDF)</p>
-            <div className="flex items-center flex-wrap">
-              <input
-                type="file"
-                id="characterCertificate"
-                onChange={(e) => handleFileChange(e, 'characterCertificate')}
-                className="block w-full text-xs sm:text-sm text-gray-500
-                  file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-                accept=".pdf"
-              />
-              {uploadStatus.characterCertificate && (
-                <span className="ml-2 text-green-500">✓</span>
-              )}
+            
+            {/* ID Documents */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* Aadhaar Card */}
+              <div className="border p-3 sm:p-4 rounded-lg">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">Aadhaar Card</h3>
+                <div className="flex items-center flex-wrap">
+                  <input
+                    type="file"
+                    id="aadhaarCard"
+                    onChange={(e) => handleFileChange(e, 'aadhaarCard')}
+                    className="block w-full text-xs sm:text-sm text-gray-500
+                      file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                      file:rounded-full file:border-0
+                      file:text-xs file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    accept=".pdf"
+                  />
+                  {uploadStatus.aadhaarCard && (
+                    <span className="ml-2 text-green-500">✓</span>
+                  )}
+                </div>
+              </div>
+              
+              {/* PAN Card */}
+              <div className="border p-3 sm:p-4 rounded-lg">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-1 sm:mb-2">PAN Card</h3>
+                <div className="flex items-center flex-wrap">
+                  <input
+                    type="file"
+                    id="panCard"
+                    onChange={(e) => handleFileChange(e, 'panCard')}
+                    className="block w-full text-xs sm:text-sm text-gray-500
+                      file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                      file:rounded-full file:border-0
+                      file:text-xs file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    accept=".pdf"
+                  />
+                  {uploadStatus.panCard && (
+                    <span className="ml-2 text-green-500">✓</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -50,13 +50,42 @@ const upload = multer({
 
 // Export the upload middleware for use in routes
 exports.uploadMiddleware = upload.fields([
+  // Required
   { name: 'photo', maxCount: 1 },
   { name: 'signature', maxCount: 1 },
+  
+  // Educational documents
   { name: 'marksheet10th', maxCount: 1 },
+  { name: 'certificate10th', maxCount: 1 },
   { name: 'marksheet12th', maxCount: 1 },
+  { name: 'certificate12th', maxCount: 1 },
   { name: 'graduationMarksheet', maxCount: 1 },
+  
+  // Semester marksheets
+  { name: 'semester1', maxCount: 1 },
+  { name: 'semester2', maxCount: 1 },
+  { name: 'semester3', maxCount: 1 },
+  { name: 'semester4', maxCount: 1 },
+  { name: 'semester5', maxCount: 1 },
+  { name: 'semester6', maxCount: 1 },
+  { name: 'semester7', maxCount: 1 },
+  { name: 'semester8', maxCount: 1 },
+  
+  // Entrance exam documents
+  { name: 'entranceAdmitCard', maxCount: 1 },
+  { name: 'entranceScoreCard', maxCount: 1 },
+  
+  // Other documents
   { name: 'provisionalCertificate', maxCount: 1 },
-  { name: 'characterCertificate', maxCount: 1 }
+  { name: 'characterCertificate', maxCount: 1 },
+  { name: 'provisionalAdmissionSlip', maxCount: 1 },
+  { name: 'paymentSlip', maxCount: 1 },
+  { name: 'studyCentreProof', maxCount: 1 },
+  { name: 'medicalCertificate', maxCount: 1 },
+  { name: 'categoryCertificate', maxCount: 1 },
+  { name: 'defenceCertificate', maxCount: 1 },
+  { name: 'aadhaarCard', maxCount: 1 },
+  { name: 'panCard', maxCount: 1 }
 ]);
 
 // Submit admission form with documents

@@ -116,7 +116,7 @@ export default function AdminDashboard() {
         // Extract the filename from the path
         const filename = docPath.split('/').pop();
         
-        // Try using the test route first
+        // Try using the test route first with properly constructed URL
         const testUrl = `http://localhost:8000/test-file-access/${filename}`;
         console.log("Testing direct file access:", testUrl);
         
@@ -147,13 +147,16 @@ export default function AdminDashboard() {
           // Continue with the regular approach if test fails
         }
         
-        // Regular approach with token
-        const url = `http://localhost:8000/uploads/${filename}?token=${token}`;
+        // Regular approach with token - Fixed URL construction
+        const url = `http://localhost:8000/uploads/${filename}`;
         console.log("Attempting to download from:", url);
         
         const response = await axios.get(url, {
           headers: {
             Authorization: `Bearer ${token}`
+          },
+          params: {
+            token: token
           },
           responseType: 'blob'
         });
@@ -507,8 +510,18 @@ export default function AdminDashboard() {
                             </div>
                             
                             <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">10th Passing Certificate</span>
+                              <span>{renderDocument(selectedAdmission.certificate10th, "10th Certificate")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">12th Marksheet</span>
                               <span>{renderDocument(selectedAdmission.marksheet12th, "12th Marksheet")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">12th Passing Certificate</span>
+                              <span>{renderDocument(selectedAdmission.certificate12th, "12th Certificate")}</span>
                             </div>
                             
                             <div className="px-4 py-3 flex items-center justify-between">
@@ -517,13 +530,103 @@ export default function AdminDashboard() {
                             </div>
                             
                             <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Semester 1 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester1, "Semester 1")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Semester 2 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester2, "Semester 2")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Semester 3 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester3, "Semester 3")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Semester 4 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester4, "Semester 4")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Semester 5 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester5, "Semester 5")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Semester 6 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester6, "Semester 6")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Semester 7 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester7, "Semester 7")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Semester 8 Marksheet</span>
+                              <span>{renderDocument(selectedAdmission.semester8, "Semester 8")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">NIMCET/CET Admit Card</span>
+                              <span>{renderDocument(selectedAdmission.entranceAdmitCard, "Entrance Admit Card")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">NIMCET/CET Score Card</span>
+                              <span>{renderDocument(selectedAdmission.entranceScoreCard, "Entrance Score Card")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Provisional Admission Slip</span>
+                              <span>{renderDocument(selectedAdmission.provisionalAdmissionSlip, "Admission Slip")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Payment Slip</span>
+                              <span>{renderDocument(selectedAdmission.paymentSlip, "Payment Slip")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Study Centre Proof</span>
+                              <span>{renderDocument(selectedAdmission.studyCentreProof, "Study Centre Proof")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Medical Certificate</span>
+                              <span>{renderDocument(selectedAdmission.medicalCertificate, "Medical Certificate")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Reserved Category Certificate</span>
+                              <span>{renderDocument(selectedAdmission.categoryCertificate, "Category Certificate")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Provisional Certificate</span>
                               <span>{renderDocument(selectedAdmission.provisionalCertificate, "Provisional Certificate")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Defense/PH Certificate</span>
+                              <span>{renderDocument(selectedAdmission.defenceCertificate, "Defence/PH Certificate")}</span>
                             </div>
                             
                             <div className="px-4 py-3 flex items-center justify-between">
                               <span className="text-sm font-medium text-gray-700">Character Certificate</span>
                               <span>{renderDocument(selectedAdmission.characterCertificate, "Character Certificate")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
+                              <span className="text-sm font-medium text-gray-700">Aadhaar Card</span>
+                              <span>{renderDocument(selectedAdmission.aadhaarCard, "Aadhaar Card")}</span>
+                            </div>
+                            
+                            <div className="px-4 py-3 flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">PAN Card</span>
+                              <span>{renderDocument(selectedAdmission.panCard, "PAN Card")}</span>
                             </div>
                           </div>
                         </div>
