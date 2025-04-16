@@ -38,7 +38,7 @@ export default function Signup() {
     }
 
     try {
-      const url = "http://localhost:8000/auth/signup"; 
+      const url = "https://acadxpert-main.onrender.com/auth/signup"; 
       const response = await fetch(url, {
         method: "POST",
         headers: {

@@ -30,7 +30,7 @@ export default function AdminDashboard() {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      const response = await axios.get("http://localhost:8000/admin/admissions", {
+      const response = await axios.get("https://acadxpert-main.onrender.com/admin/admissions", {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
       const token = localStorage.getItem("token");
       
       const response = await axios.patch(
-        `http://localhost:8000/admin/admissions/${id}/status`,
+        `https://acadxpert-main.onrender.com/admin/admissions/${id}/status`,
         { status },
         {
           headers: {
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
         const filename = docPath.split('/').pop();
         
         // Try using the test route first with properly constructed URL
-        const testUrl = `http://localhost:8000/test-file-access/${filename}`;
+        const testUrl = `https://acadxpert-main.onrender.com/test-file-access/${filename}`;
         console.log("Testing direct file access:", testUrl);
         
         try {
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
         }
         
         // Regular approach with token - Fixed URL construction
-        const url = `http://localhost:8000/uploads/${filename}`;
+        const url = `https://acadxpert-main.onrender.com/uploads/${filename}`;
         console.log("Attempting to download from:", url);
         
         const response = await axios.get(url, {
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
     
     // Try the direct test route first, without token
     // This is more likely to work for images
-    return `http://localhost:8000/test-file-access/${filename}`;
+    return `https://acadxpert-main.onrender.com/test-file-access/${filename}`;
   };
 
   // Add this function to filter admissions based on search term

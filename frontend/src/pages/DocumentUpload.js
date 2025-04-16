@@ -60,7 +60,7 @@ export default function DocumentUpload() {
           return;
         }
 
-        const response = await axios.get('http://localhost:8000/admission/user/admission', {
+        const response = await axios.get('https://acadxpert-main.onrender.com/admission/user/admission', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -195,7 +195,7 @@ export default function DocumentUpload() {
       
       // Send data to backend
       const response = await axios.post(
-        'http://localhost:8000/admission/submit',
+        'https://acadxpert-main.onrender.com/admission/submit',
         formDataToSend,
         {
           headers: {

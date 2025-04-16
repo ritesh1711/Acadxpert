@@ -21,7 +21,7 @@ export default function Home() {
             }
 
             try {
-                const response = await fetch("http://localhost:8000/auth/user", {
+                const response = await fetch("https://acadxpert-main.onrender.com/auth/user", {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -61,7 +61,7 @@ export default function Home() {
             if (!token) return;
 
             try {
-                const response = await axios.get('http://localhost:8000/admission/user/admission', {
+                const response = await axios.get('https://acadxpert-main.onrender.com/admission/user/admission', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }

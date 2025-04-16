@@ -19,7 +19,7 @@ export default function StudentProfile() {
             if (!token) return;
 
             try {
-                const response = await fetch("http://localhost:8000/auth/user", {
+                const response = await fetch("https://acadxpert-main.onrender.com/auth/user", {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,

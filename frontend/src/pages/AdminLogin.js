@@ -36,7 +36,7 @@ export default function AdminLogin() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/auth/login",
+        "https://acadxpert-main.onrender.com/auth/login",
         formData
       );
 

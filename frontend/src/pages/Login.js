@@ -37,7 +37,7 @@ export default function Login() {
     }
 
     try {
-      const url = "http://localhost:8000/auth/login"; // Use local development server
+      const url = "https://acadxpert-main.onrender.com/auth/login"; // Use local development server
       const response = await fetch(url, {
         method: "POST",
         headers: {

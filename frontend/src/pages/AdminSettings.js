@@ -76,7 +76,7 @@ export default function AdminSettings() {
       }
       
       const response = await axios.post(
-        "http://localhost:8000/admin/update-credentials",
+        "https://acadxpert-main.onrender.com/admin/update-credentials",
         payload,
         {
           headers: {
