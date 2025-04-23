@@ -4,7 +4,9 @@ const signupValidation = (req, res, next) => {
     const schema = Joi.object({
         name: Joi.string().trim().min(3).max(100).required(),
         email: Joi.string().email().trim().required(),
-        password: Joi.string().min(4).max(100).required()
+        password: Joi.string().min(4).max(100).required(),
+        course: Joi.string().valid('MCA', 'MBA', 'MTech').default('MCA'),
+        semester: Joi.number().integer().min(1).max(4).default(1)
     });
 
     const { error } = schema.validate(req.body, { abortEarly: false });

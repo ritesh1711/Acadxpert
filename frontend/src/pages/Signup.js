@@ -8,6 +8,8 @@ export default function Signup() {
     name: "",
     email: "",
     password: "",
+    course: "MCA",
+    semester: "1",
   });
 
   const navigate = useNavigate(); // Corrected to lowercase 'navigate'
@@ -23,10 +25,10 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault(); // Prevent form submission
 
-    const { name, email, password } = signupInfo;
+    const { name, email, password, course, semester } = signupInfo;
 
     // ✅ Check if all fields are filled
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !course || !semester) {
       toast.error("All fields are required");
       return;
     }
@@ -44,7 +46,13 @@ export default function Signup() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          password, 
+          course, 
+          semester: parseInt(semester, 10) 
+        }),
       });
 
       const result = await response.json();
@@ -103,7 +111,7 @@ export default function Signup() {
             />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-600">Password</label>
             <input
               type="password"
@@ -114,6 +122,39 @@ export default function Signup() {
               value={signupInfo.password}
               required
             />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="course" className="block text-sm font-medium text-gray-600">Course</label>
+            <select
+              onChange={handleChange}
+              id="course"
+              name="course"
+              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={signupInfo.course}
+              required
+            >
+              <option value="MCA">MCA</option>
+              <option value="MBA">MBA</option>
+              <option value="MTech">MTech</option>
+            </select>
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="semester" className="block text-sm font-medium text-gray-600">Semester</label>
+            <select
+              onChange={handleChange}
+              id="semester"
+              name="semester"
+              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={signupInfo.semester}
+              required
+            >
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
           </div>
 
           <button

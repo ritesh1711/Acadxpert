@@ -10,8 +10,29 @@ const admissionSchema = new mongoose.Schema({
   nimcetRank: {
     type: String
   },
+  catRank: {
+    type: String
+  },
+  gateRank: {
+    type: String
+  },
   score: {
     type: String
+  },
+  
+  // Course Information
+  course: {
+    type: String,
+    required: true,
+    enum: ['MCA', 'MBA', 'MTech'],
+    default: 'MCA'
+  },
+  semester: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 4,
+    default: 1
   },
   
   // Candidate Information
@@ -101,27 +122,106 @@ const admissionSchema = new mongoose.Schema({
     type: String
   },
   
-  // Document References
+  // Document References - Required documents
   photo: {
     type: String // URL or file path
   },
   signature: {
     type: String // URL or file path
   },
+  
+  // Document References - Educational documents
   marksheet10th: {
+    type: String // URL or file path
+  },
+  certificate10th: {
     type: String // URL or file path
   },
   marksheet12th: {
     type: String // URL or file path
   },
+  certificate12th: {
+    type: String // URL or file path
+  },
   graduationMarksheet: {
     type: String // URL or file path
   },
+  
+  // Document References - Semester marksheets
+  semester1: {
+    type: String // URL or file path
+  },
+  semester2: {
+    type: String // URL or file path
+  },
+  semester3: {
+    type: String // URL or file path
+  },
+  semester4: {
+    type: String // URL or file path
+  },
+  semester5: {
+    type: String // URL or file path
+  },
+  semester6: {
+    type: String // URL or file path
+  },
+  semester7: {
+    type: String // URL or file path
+  },
+  semester8: {
+    type: String // URL or file path
+  },
+  
+  // Document References - Entrance exam documents
+  entranceAdmitCard: {
+    type: String // URL or file path
+  },
+  entranceScoreCard: {
+    type: String // URL or file path
+  },
+  
+  // Document References - Other documents
   provisionalCertificate: {
     type: String // URL or file path
   },
   characterCertificate: {
     type: String // URL or file path
+  },
+  provisionalAdmissionSlip: {
+    type: String // URL or file path
+  },
+  paymentSlip: {
+    type: String // URL or file path
+  },
+  studyCentreProof: {
+    type: String // URL or file path
+  },
+  medicalCertificate: {
+    type: String // URL or file path
+  },
+  categoryCertificate: {
+    type: String // URL or file path
+  },
+  defenceCertificate: {
+    type: String // URL or file path
+  },
+  aadhaarCard: {
+    type: String // URL or file path
+  },
+  panCard: {
+    type: String // URL or file path
+  },
+  
+  // Document status tracking
+  documentStatus: {
+    type: Object,
+    default: {}
+  },
+  
+  // Undertaking for pending documents
+  undertakingText: {
+    type: String
   },
   
   // User Reference
