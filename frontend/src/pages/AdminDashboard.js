@@ -1,47 +1,164 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  CircularProgress,
+  Card,
+  CardContent,
+  Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Stack,
+  InputAdornment,
+  IconButton,
+  Divider,
+  Tabs,
+  Tab,
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import PersonIcon from '@mui/icons-material/Person';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import SchoolIcon from '@mui/icons-material/School';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FolderIcon from '@mui/icons-material/Folder';
+import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DownloadIcon from '@mui/icons-material/Download';
+import axios from 'axios';
 
-export default function AdminDashboard() {
-  const [admissions, setAdmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedAdmission, setSelectedAdmission] = useState(null);
-  const [activeTab, setActiveTab] = useState("details"); // 'details' or 'documents'
-  const [searchTerm, setSearchTerm] = useState(""); // Add state for search term
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add request interceptor to add token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Course options from the Admission model
+const COURSES = ['MCA', 'MBA', 'MTech'];
+
+// Semester options from the Admission model (1 to 4)
+const SEMESTERS = Array.from({ length: 4 }, (_, i) => i + 1);
+
+const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [admissions, setAdmissions] = useState([]);
+  const [filteredAdmissions, setFilteredAdmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedAdmission, setSelectedAdmission] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openCredentialsDialog, setOpenCredentialsDialog] = useState(false);
+  const [credentials, setCredentials] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [stats, setStats] = useState({
+    total: 0
+  });
+  const [activeTab, setActiveTab] = useState('details');
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState('');
 
   useEffect(() => {
-    // Check if user is admin
-    const token = localStorage.getItem("token");
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    
-    if (!token || !isAdmin) {
-      navigate("/admin/login");
-      return;
-    }
-    
-    // Fetch all admissions
     fetchAdmissions();
-  }, [navigate]);
+  }, []);
+
+  // Effect for filtering
+  useEffect(() => {
+    filterAdmissions();
+  }, [searchQuery, selectedCourse, selectedSemester, admissions]);
+
+  const filterAdmissions = () => {
+    let filtered = [...admissions];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(admission => 
+        admission.name?.toLowerCase().includes(query) ||
+        admission.email?.toLowerCase().includes(query)
+      );
+    }
+
+    if (selectedCourse) {
+      filtered = filtered.filter(admission => 
+        admission.course === selectedCourse
+      );
+    }
+
+    if (selectedSemester) {
+      filtered = filtered.filter(admission => 
+        admission.semester === selectedSemester
+      );
+    }
+
+    setFilteredAdmissions(filtered);
+    setStats({
+      total: filtered.length
+    });
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleCourseChange = (event) => {
+    setSelectedCourse(event.target.value);
+  };
+
+  const handleSemesterChange = (event) => {
+    setSelectedSemester(event.target.value);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCourse('');
+    setSelectedSemester('');
+  };
 
   const fetchAdmissions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      
-      const response = await axios.get("http://localhost:8000/admin/admissions", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success) {
-        setAdmissions(response.data.data);
-      }
+      const response = await api.get('/admin/admissions');
+      const admissionsData = response.data?.data || [];
+      setAdmissions(admissionsData);
+      setStats({ total: admissionsData.length });
+      setError(null);
     } catch (err) {
-      console.error("Error fetching admissions:", err);
-      setError("Failed to load admissions data");
+      console.error('Error fetching admissions:', err);
+      setError('Failed to fetch admissions. Please try again later.');
+      setAdmissions([]);
     } finally {
       setLoading(false);
     }
@@ -49,600 +166,850 @@ export default function AdminDashboard() {
 
   const handleViewDetails = (admission) => {
     setSelectedAdmission(admission);
-    setActiveTab("details");
+    setOpenDialog(true);
   };
 
-  const handleUpdateStatus = async (id, status) => {
+  const handleUpdateCredentials = async () => {
+    if (credentials.newPassword !== credentials.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token");
-      
-      const response = await axios.patch(
-        `http://localhost:8000/admin/admissions/${id}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (response.data.success) {
-        // Update the admission status in the state
-        setAdmissions(prevAdmissions =>
-          prevAdmissions.map(admission =>
-            admission._id === id ? { ...admission, status } : admission
-          )
-        );
-        
-        // Update selected admission if it's the one being modified
-        if (selectedAdmission && selectedAdmission._id === id) {
-          setSelectedAdmission({ ...selectedAdmission, status });
-        }
-      }
+      await api.post('/admin/update-credentials', {
+        currentPassword: credentials.currentPassword,
+        newPassword: credentials.newPassword,
+      });
+      setOpenCredentialsDialog(false);
+      setCredentials({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setError(null);
     } catch (err) {
-      console.error("Error updating status:", err);
-      setError("Failed to update status");
+      setError('Failed to update credentials. Please check your current password.');
+      console.error('Error updating credentials:', err);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
-    localStorage.removeItem("name");
-    localStorage.removeItem("isAdmin");
-    navigate("/admin/login");
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
-  const getStatusStyle = (status) => {
-    switch(status) {
-      case 'approved':
-        return "bg-green-100 text-green-800";
-      case 'rejected':
-        return "bg-red-100 text-red-800";
-      default: // 'submitted'
-        return "bg-yellow-100 text-yellow-800";
-    }
+  const formatDate = (dateObj) => {
+    if (!dateObj) return 'Not provided';
+    return `${dateObj.day}/${dateObj.month}/${dateObj.year}`;
   };
 
-  // Helper to render document link or "Not submitted" if document doesn't exist
-  const renderDocument = (docPath, label) => {
-    if (!docPath) {
-      return <span className="text-red-500 font-medium">Not submitted</span>;
-    }
+  const DocumentLink = ({ url, label }) => {
+    if (!url) return <Typography color="error">Not uploaded</Typography>;
     
-    const token = localStorage.getItem("token");
     const handleDownload = async () => {
       try {
-        // Extract the filename from the path
-        const filename = docPath.split('/').pop();
-        
-        // Try using the test route first with properly constructed URL
-        const testUrl = `http://localhost:8000/test-file-access/${filename}`;
-        console.log("Testing direct file access:", testUrl);
-        
-        try {
-          // First try direct access without token
-          const testResponse = await axios.get(testUrl, {
-            responseType: 'blob'
-          });
-          
-          // If the test succeeds, use the simple URL
-          console.log("Direct file access successful!");
-          
-          // Create a blob URL for the file
-          const blob = new Blob([testResponse.data]);
-          const downloadUrl = window.URL.createObjectURL(blob);
-          
-          // Create a temporary link and click it to download the file
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.setAttribute('download', filename);
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode.removeChild(link);
-          window.URL.revokeObjectURL(downloadUrl);
-          return; // Exit if successful
-        } catch (testErr) {
-          console.log("Direct file access failed:", testErr.message);
-          // Continue with the regular approach if test fails
+        // Extract just the filename from the path
+        const filename = url.split('/').pop();
+        if (!filename) {
+          throw new Error('Invalid file path');
         }
+
+        // Get the authentication token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+
+        // Create the download URL with the filename and token
+        const downloadUrl = `${api.defaults.baseURL}/uploads/${filename}?token=${token}`;
         
-        // Regular approach with token - Fixed URL construction
-        const url = `http://localhost:8000/uploads/${filename}`;
-        console.log("Attempting to download from:", url);
+        console.log('Attempting to download from:', downloadUrl); // Debug log
         
-        const response = await axios.get(url, {
+        const response = await fetch(downloadUrl, {
           headers: {
-            Authorization: `Bearer ${token}`
-          },
-          params: {
-            token: token
-          },
-          responseType: 'blob'
+            'Authorization': `Bearer ${token}`
+          }
         });
         
-        // Create a blob URL for the file
-        const blob = new Blob([response.data]);
-        const downloadUrl = window.URL.createObjectURL(blob);
-        
-        // Determine file extension based on content type
-        let extension = '.pdf';
-        const contentType = response.headers['content-type'];
-        if (contentType) {
-          if (contentType.includes('image/jpeg')) extension = '.jpg';
-          else if (contentType.includes('image/png')) extension = '.png';
-          else if (contentType.includes('image/')) extension = '.img';
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('File not found on server');
+          }
+          throw new Error(`Server error: ${response.status}`);
         }
         
-        // Create a temporary link and click it to download the file
+        // Get content type from response
+        const contentType = response.headers.get('Content-Type');
+        if (!contentType) {
+          throw new Error('No content type specified by server');
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          throw new Error('Downloaded file is empty');
+        }
+
+        // Create object URL for download
+        const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', `${label.toLowerCase().replace(/\s+/g, '_')}${extension}`);
+        link.href = blobUrl;
+        
+        // Set filename based on content type if not specified
+        const fileExtension = contentType.split('/').pop().replace('jpeg', 'jpg');
+        const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        link.download = `${cleanLabel}.${fileExtension}`;
+        
+        // Trigger download
         document.body.appendChild(link);
         link.click();
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
-      } catch (err) {
-        console.error("Error downloading document:", err);
-        console.error("Document path attempted:", docPath);
-        alert("Failed to download document. Please try again.");
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.error('Error downloading document:', error);
+        console.error('URL attempted:', url);
+        alert(`Failed to download ${label}: ${error.message}`);
       }
     };
-    
+
     return (
-      <button
+      <Button
         onClick={handleDownload}
-        className="text-blue-600 hover:text-blue-800 flex items-center"
+        variant="contained"
+        size="small"
+        sx={{
+          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+          color: 'white',
+          boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+          '&:hover': {
+            background: 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
+            transform: 'translateY(-2px)',
+            transition: 'transform 0.2s'
+          },
+          '&:disabled': {
+            background: 'rgba(0, 0, 0, 0.12)',
+            boxShadow: 'none'
+          }
+        }}
+        startIcon={<DownloadIcon />}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-        </svg>
-        View {label}
-      </button>
+        Download {label}
+      </Button>
     );
   };
 
-  // Helper function to get direct image URL
-  const getImageUrl = (path) => {
-    if (!path) return '';
-    
-    // Extract just the filename from the path
-    const filename = path.split('/').pop();
-    
-    // Try the direct test route first, without token
-    // This is more likely to work for images
-    return `http://localhost:8000/test-file-access/${filename}`;
-  };
-
-  // Add this function to filter admissions based on search term
-  const getFilteredAdmissions = () => {
-    if (!searchTerm.trim()) return admissions;
-    
-    return admissions.filter(admission => {
-      const name = (admission.nameEnglish || "").toLowerCase();
-      const email = (admission.email || "").toLowerCase();
-      const appNo = (admission.applicationNo || "").toLowerCase();
-      const search = searchTerm.toLowerCase();
-      
-      return name.includes(search) || 
-             email.includes(search) || 
-             appNo.includes(search);
-    });
-  };
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate("/admin/settings")}
-                className="mr-4 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-              >
-                Settings
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600">
+      {/* Navbar with enhanced styling */}
+      <Box sx={{ 
+        bgcolor: 'rgba(255, 255, 255, 0.15)', 
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.3)',
+        py: 2,
+        px: 3,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000
+      }}>
+        <Box display="flex" alignItems="center">
+          <SchoolIcon sx={{ 
+            fontSize: 40, 
+            color: 'white',
+            mr: 2,
+            filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))'
+          }} />
+          <Typography variant="h5" sx={{ 
+            color: 'white', 
+            fontWeight: 600,
+            textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+          }}>
+            Admin Dashboard
+          </Typography>
+        </Box>
+        <Box>
+          <Button
+            variant="contained"
+            onClick={() => setOpenCredentialsDialog(true)}
+            sx={{ 
+              mr: 2,
+              bgcolor: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+              '&:hover': { 
+                bgcolor: 'rgba(255, 255, 255, 0.3)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s'
+              },
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}
+          >
+            Update Credentials
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<ExitToAppIcon />}
+            onClick={handleLogout}
+            sx={{
+              background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #FF8E53 30%, #FE6B8B 90%)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s'
+              },
+              boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
+            }}
+          >
+            Logout
+          </Button>
+        </Box>
+      </Box>
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800">Student Admissions</h2>
-            
-            {/* Search Bar */}
-            <div className="relative w-64">
-              <input
-                type="text"
-                placeholder="Search by name, email..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <div className="absolute right-3 top-2.5">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {loading ? (
-            <div className="flex justify-center">
-              <div className="loader">Loading...</div>
-            </div>
-          ) : (
-            <div className="flex flex-col md:flex-row">
-              <div className="w-full md:w-1/3 pr-0 md:pr-4">
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                  <ul className="divide-y divide-gray-200">
-                    {getFilteredAdmissions().length === 0 ? (
-                      <li className="px-6 py-4 text-center text-gray-500">
-                        {searchTerm ? 'No matching students found' : 'No admissions found'}
-                      </li>
-                    ) : (
-                      getFilteredAdmissions().map((admission) => (
-                        <li key={admission._id} className="px-6 py-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {admission.nameEnglish || "N/A"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                App No: {admission.applicationNo || "N/A"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Email: {admission.email || "N/A"}
-                              </div>
-                              <div className="mt-1">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusStyle(admission.status)}`}>
-                                  {admission.status || "submitted"}
-                                </span>
-                              </div>
-                            </div>
-                            <div>
-                              <button
-                                onClick={() => handleViewDetails(admission)}
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-                              >
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      ))
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 2,
+              borderRadius: 2,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+
+        {/* Stats Card with enhanced styling */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12}>
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+              borderRadius: 4,
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.3)'
+            }}>
+              <CardContent sx={{ p: 4 }}>
+                <Typography 
+                  color="textSecondary" 
+                  gutterBottom
+                  sx={{ 
+                    fontSize: '1.2rem',
+                    fontWeight: 500,
+                    color: 'rgba(0,0,0,0.7)'
+                  }}
+                >
+                  Total Applications
+                </Typography>
+                <Typography 
+                  variant="h2" 
+                  sx={{ 
+                    fontWeight: 600,
+                    background: 'linear-gradient(45deg, #2196F3, #21CBF3)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                  }}
+                >
+                  {stats.total}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Filters with enhanced styling */}
+        <Paper sx={{ 
+          p: 3, 
+          mb: 3,
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          borderRadius: 4,
+          border: '1px solid rgba(255,255,255,0.3)'
+        }}>
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={2} 
+            alignItems="center"
+            sx={{
+              '& .MuiTextField-root, & .MuiFormControl-root': {
+                background: 'rgba(255,255,255,0.9)',
+                borderRadius: 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }
+            }}
+          >
+            <TextField
+              label="Search by name or email"
+              variant="outlined"
+              size="small"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              sx={{ minWidth: 200 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Course</InputLabel>
+              <Select
+                value={selectedCourse}
+                onChange={handleCourseChange}
+                label="Course"
+              >
+                <MenuItem value="">All Courses</MenuItem>
+                {COURSES.map((course) => (
+                  <MenuItem key={course} value={course}>
+                    {course}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Semester</InputLabel>
+              <Select
+                value={selectedSemester}
+                onChange={handleSemesterChange}
+                label="Semester"
+              >
+                <MenuItem value="">All Semesters</MenuItem>
+                {SEMESTERS.map((semester) => (
+                  <MenuItem key={semester} value={semester}>
+                    Semester {semester}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              onClick={clearFilters}
+              size="small"
+            >
+              Clear Filters
+            </Button>
+          </Stack>
+        </Paper>
+
+        {/* Applications Table with enhanced styling */}
+        <TableContainer component={Paper} sx={{ 
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          borderRadius: 4,
+          border: '1px solid rgba(255,255,255,0.3)',
+          overflow: 'hidden',
+          '& .MuiTableHead-root': {
+            background: 'rgba(33, 150, 243, 0.1)'
+          },
+          '& .MuiTableRow-root:hover': {
+            background: 'rgba(33, 150, 243, 0.05)'
+          }
+        }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Course</TableCell>
+                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Semester</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <CircularProgress size={20} sx={{ my: 1 }} />
+                  </TableCell>
+                </TableRow>
+              ) : filteredAdmissions.length > 0 ? (
+                filteredAdmissions.map((admission) => (
+                  <TableRow key={admission._id} hover>
+                    <TableCell>{admission.name}</TableCell>
+                    <TableCell>{admission.email}</TableCell>
+                    <TableCell>{admission.course}</TableCell>
+                    <TableCell>Semester {admission.semester}</TableCell>
+                    <TableCell align="right">
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewDetails(admission)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <Typography color="textSecondary">No admissions found</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Details Dialog with enhanced styling */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)} 
+          maxWidth="lg" 
+          fullWidth
+          PaperProps={{
+            sx: { 
+              minHeight: '80vh',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+              borderRadius: 4,
+              border: '1px solid rgba(255,255,255,0.3)'
+            }
+          }}
+        >
+          <DialogTitle>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box display="flex" alignItems="center">
+                <AssignmentIcon sx={{ mr: 1.5, color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Application Details
+                </Typography>
+              </Box>
+              <IconButton onClick={() => setOpenDialog(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <Divider />
+          <DialogContent>
+            {selectedAdmission && (
+              <>
+                <Tabs
+                  value={activeTab}
+                  onChange={(e, newValue) => setActiveTab(newValue)}
+                  sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
+                >
+                  <Tab
+                    label="Student Information"
+                    value="details"
+                    icon={<PersonIcon />}
+                    iconPosition="start"
+                  />
+                  <Tab
+                    label="Documents"
+                    value="documents"
+                    icon={<FolderIcon />}
+                    iconPosition="start"
+                  />
+                </Tabs>
+
+                {activeTab === 'details' ? (
+                  <Box>
+                    {/* Course Information */}
+                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1 }}>
+                      Course Information
+                    </Typography>
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid item xs={12} md={4}>
+                        <Typography><strong>Course:</strong> {selectedAdmission.course}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Typography><strong>Semester:</strong> {selectedAdmission.semester}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Typography><strong>NIMCET Rank:</strong> {selectedAdmission.nimcetRank || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Typography><strong>CAT Rank:</strong> {selectedAdmission.catRank || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Typography><strong>GATE Rank:</strong> {selectedAdmission.gateRank || 'N/A'}</Typography>
+                      </Grid>
+                    </Grid>
+
+                    {/* Personal Information */}
+                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1 }}>
+                      Personal Information
+                    </Typography>
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid item xs={12} md={6}>
+                        <Typography><strong>Name (English):</strong> {selectedAdmission.nameEnglish}</Typography>
+                        <Typography><strong>Name (Hindi):</strong> {selectedAdmission.nameHindi || 'Not provided'}</Typography>
+                        <Typography><strong>Email:</strong> {selectedAdmission.email}</Typography>
+                        <Typography><strong>Mobile:</strong> {selectedAdmission.mobileNumber}</Typography>
+                        <Typography><strong>Date of Birth:</strong> {formatDate(selectedAdmission.dateOfBirth)}</Typography>
+                        <Typography><strong>Category:</strong> {selectedAdmission.category || 'Not provided'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography><strong>Permanent Address:</strong> {selectedAdmission.permanentAddress}</Typography>
+                        <Typography><strong>State:</strong> {selectedAdmission.state}</Typography>
+                        <Typography><strong>District:</strong> {selectedAdmission.district}</Typography>
+                        <Typography><strong>Pin Code:</strong> {selectedAdmission.pinCode}</Typography>
+                        <Typography><strong>Correspondence Address:</strong> {selectedAdmission.correspondenceAddress}</Typography>
+                        <Typography><strong>Correspondence Email:</strong> {selectedAdmission.correspondenceEmail}</Typography>
+                      </Grid>
+                    </Grid>
+
+                    {/* Parents Information */}
+                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1 }}>
+                      Parents Information
+                    </Typography>
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle1" gutterBottom><strong>Father's Details</strong></Typography>
+                        <Typography><strong>Name (English):</strong> {selectedAdmission.fatherNameEnglish || 'Not provided'}</Typography>
+                        <Typography><strong>Name (Hindi):</strong> {selectedAdmission.fatherNameHindi || 'Not provided'}</Typography>
+                        <Typography><strong>Occupation:</strong> {selectedAdmission.fatherOccupation || 'Not provided'}</Typography>
+                        <Typography><strong>Office Address:</strong> {selectedAdmission.fatherOfficeAddress || 'Not provided'}</Typography>
+                        <Typography><strong>Email:</strong> {selectedAdmission.fatherEmail || 'Not provided'}</Typography>
+                        <Typography><strong>Phone:</strong> {selectedAdmission.fatherPhone || 'Not provided'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle1" gutterBottom><strong>Mother's Details</strong></Typography>
+                        <Typography><strong>Name (English):</strong> {selectedAdmission.motherNameEnglish || 'Not provided'}</Typography>
+                        <Typography><strong>Name (Hindi):</strong> {selectedAdmission.motherNameHindi || 'Not provided'}</Typography>
+                        <Typography><strong>Occupation:</strong> {selectedAdmission.motherOccupation || 'Not provided'}</Typography>
+                        <Typography><strong>Office Address:</strong> {selectedAdmission.motherOfficeAddress || 'Not provided'}</Typography>
+                        <Typography><strong>Email:</strong> {selectedAdmission.motherEmail || 'Not provided'}</Typography>
+                        <Typography><strong>Phone:</strong> {selectedAdmission.motherPhone || 'Not provided'}</Typography>
+                      </Grid>
+                    </Grid>
+
+                    {/* Remarks */}
+                    {selectedAdmission.remarks && (
+                      <>
+                        <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mt: 3 }}>
+                          Remarks
+                        </Typography>
+                        <Paper sx={{ p: 2, bgcolor: 'grey.100' }}>
+                          <Typography>{selectedAdmission.remarks}</Typography>
+                        </Paper>
+                      </>
                     )}
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="w-full md:w-2/3 mt-6 md:mt-0">
-                {selectedAdmission ? (
-                  <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                      <div>
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">
-                          Application Details
-                        </h3>
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                          Application #{selectedAdmission.applicationNo}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleUpdateStatus(selectedAdmission._id, "approved")}
-                          className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(selectedAdmission._id, "rejected")}
-                          className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Tabs */}
-                    <div className="border-b border-gray-200">
-                      <nav className="-mb-px flex">
-                        <button
-                          onClick={() => setActiveTab("details")}
-                          className={`py-2 px-4 text-sm font-medium border-b-2 ${
-                            activeTab === "details"
-                              ? "border-blue-500 text-blue-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          Personal Details
-                        </button>
-                        <button
-                          onClick={() => setActiveTab("documents")}
-                          className={`py-2 px-4 text-sm font-medium border-b-2 ${
-                            activeTab === "documents"
-                              ? "border-blue-500 text-blue-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          Documents
-                        </button>
-                      </nav>
-                    </div>
-                    
-                    {activeTab === "details" ? (
-                      <div className="border-t border-gray-200">
-                        <dl>
-                          <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Name</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.nameEnglish || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Email</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.email || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Mobile</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.mobileNumber || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Score</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.score || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Category</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.category || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Father's Name</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.fatherNameEnglish || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Mother's Name</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              {selectedAdmission.motherNameEnglish || "N/A"}
-                            </dd>
-                          </div>
-                          <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Status</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusStyle(selectedAdmission.status)}`}>
-                                {selectedAdmission.status || "submitted"}
-                              </span>
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                    ) : (
-                      <div className="border-t border-gray-200 py-4">
-                        <div className="mx-auto max-w-3xl">
-                          <h4 className="text-lg font-medium text-gray-900 mb-6 px-4">Uploaded Documents</h4>
-                          
-                          <div className="border rounded-lg divide-y">
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Photo</span>
-                              <span>
-                                {selectedAdmission.photo ? (
-                                  <div className="flex items-center">
-                                    <img 
-                                      src={getImageUrl(selectedAdmission.photo)}
-                                      alt="Student Photo"
-                                      className="h-12 w-12 mr-4 object-cover rounded"
-                                      onError={(e) => {
-                                        console.error("Failed to load image:", selectedAdmission.photo);
-                                        e.target.onerror = null;
-                                        e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-size='12' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Image%3C/text%3E%3C/svg%3E";
-                                      }}
-                                    />
-                                    {renderDocument(selectedAdmission.photo, "Photo")}
-                                  </div>
-                                ) : (
-                                  <span className="text-red-500 font-medium">Not submitted</span>
-                                )}
-                              </span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Signature</span>
-                              <span>
-                                {selectedAdmission.signature ? (
-                                  <div className="flex items-center">
-                                    <img 
-                                      src={getImageUrl(selectedAdmission.signature)}
-                                      alt="Signature"
-                                      className="h-8 w-24 mr-4 object-contain border rounded"
-                                      onError={(e) => {
-                                        console.error("Failed to load image:", selectedAdmission.signature);
-                                        e.target.onerror = null;
-                                        // Using a data URI as fallback instead of external placeholder
-                                        e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='80' viewBox='0 0 240 80'%3E%3Crect width='240' height='80' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-size='12' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3ENo Signature%3C/text%3E%3C/svg%3E";
-                                      }}
-                                    />
-                                    {renderDocument(selectedAdmission.signature, "Signature")}
-                                  </div>
-                                ) : (
-                                  <span className="text-red-500 font-medium">Not submitted</span>
-                                )}
-                              </span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">10th Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.marksheet10th, "10th Marksheet")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">10th Passing Certificate</span>
-                              <span>{renderDocument(selectedAdmission.certificate10th, "10th Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">12th Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.marksheet12th, "12th Marksheet")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">12th Passing Certificate</span>
-                              <span>{renderDocument(selectedAdmission.certificate12th, "12th Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Graduation Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.graduationMarksheet, "Graduation Marksheet")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Semester 1 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester1, "Semester 1")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Semester 2 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester2, "Semester 2")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Semester 3 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester3, "Semester 3")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Semester 4 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester4, "Semester 4")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Semester 5 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester5, "Semester 5")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Semester 6 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester6, "Semester 6")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Semester 7 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester7, "Semester 7")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Semester 8 Marksheet</span>
-                              <span>{renderDocument(selectedAdmission.semester8, "Semester 8")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">NIMCET/CET Admit Card</span>
-                              <span>{renderDocument(selectedAdmission.entranceAdmitCard, "Entrance Admit Card")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">NIMCET/CET Score Card</span>
-                              <span>{renderDocument(selectedAdmission.entranceScoreCard, "Entrance Score Card")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Provisional Admission Slip</span>
-                              <span>{renderDocument(selectedAdmission.provisionalAdmissionSlip, "Admission Slip")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Payment Slip</span>
-                              <span>{renderDocument(selectedAdmission.paymentSlip, "Payment Slip")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Study Centre Proof</span>
-                              <span>{renderDocument(selectedAdmission.studyCentreProof, "Study Centre Proof")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Medical Certificate</span>
-                              <span>{renderDocument(selectedAdmission.medicalCertificate, "Medical Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Reserved Category Certificate</span>
-                              <span>{renderDocument(selectedAdmission.categoryCertificate, "Category Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Provisional Certificate</span>
-                              <span>{renderDocument(selectedAdmission.provisionalCertificate, "Provisional Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Defense/PH Certificate</span>
-                              <span>{renderDocument(selectedAdmission.defenceCertificate, "Defence/PH Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Character Certificate</span>
-                              <span>{renderDocument(selectedAdmission.characterCertificate, "Character Certificate")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between bg-gray-50">
-                              <span className="text-sm font-medium text-gray-700">Aadhaar Card</span>
-                              <span>{renderDocument(selectedAdmission.aadhaarCard, "Aadhaar Card")}</span>
-                            </div>
-                            
-                            <div className="px-4 py-3 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">PAN Card</span>
-                              <span>{renderDocument(selectedAdmission.panCard, "PAN Card")}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  </Box>
                 ) : (
-                  <div className="bg-white shadow sm:rounded-lg p-6 text-center text-gray-500">
-                    Select an application to view details
-                  </div>
+                  <Box>
+                    {/* Documents */}
+                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1 }}>
+                      Documents Status Overview
+                    </Typography>
+
+                    {/* Pending Documents and Undertaking Status */}
+                    <Paper sx={{ 
+                      p: 3, 
+                      mb: 3, 
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                      borderRadius: 2,
+                      border: '1px solid rgba(33, 150, 243, 0.1)'
+                    }}>
+                      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                        Pending Documents Status
+                      </Typography>
+                      
+                      {Object.entries(selectedAdmission.documentStatus || {}).some(([_, status]) => status.pending) ? (
+                        <>
+                          <Alert 
+                            severity="warning" 
+                            sx={{ mb: 2 }}
+                          >
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                The following documents are pending:
+                              </Typography>
+                              <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                {Object.entries(selectedAdmission.documentStatus || {})
+                                  .filter(([_, status]) => status.pending)
+                                  .map(([doc]) => (
+                                    <Box component="li" key={doc} sx={{ fontSize: '0.875rem' }}>
+                                      {doc.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                    </Box>
+                                  ))
+                                }
+                              </Box>
+                            </Box>
+                          </Alert>
+
+                          {selectedAdmission.undertakingText ? (
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                                Student's Undertaking:
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                fontStyle: 'italic',
+                                bgcolor: 'rgba(255, 244, 229, 0.5)',
+                                p: 2,
+                                borderRadius: 1,
+                                border: '1px solid rgba(255, 167, 38, 0.2)'
+                              }}>
+                                "{selectedAdmission.undertakingText}"
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                              No undertaking provided for pending documents.
+                            </Alert>
+                          )}
+                        </>
+                      ) : (
+                        <Alert severity="success">
+                          All required documents have been submitted.
+                        </Alert>
+                      )}
+                    </Paper>
+
+                    {/* Rest of the documents sections */}
+                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1 }}>
+                      Documents
+                    </Typography>
+                    <Grid container spacing={3}>
+                      {/* Personal Documents Section */}
+                      <Grid item xs={12}>
+                        <Paper sx={{ 
+                          p: 3, 
+                          mb: 3, 
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                        }}>
+                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                            Personal Documents
+                          </Typography>
+                          <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ 
+                                p: 2, 
+                                border: '1px solid rgba(0,0,0,0.1)', 
+                                borderRadius: 1,
+                                bgcolor: 'rgba(255,255,255,0.5)',
+                                transition: 'transform 0.2s',
+                                '&:hover': { transform: 'translateY(-2px)' }
+                              }}>
+                                <Typography variant="subtitle2" gutterBottom>Photo:</Typography>
+                                <DocumentLink url={selectedAdmission.photo} label="Photo" />
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ 
+                                p: 2, 
+                                border: '1px solid rgba(0,0,0,0.1)', 
+                                borderRadius: 1,
+                                bgcolor: 'rgba(255,255,255,0.5)',
+                                transition: 'transform 0.2s',
+                                '&:hover': { transform: 'translateY(-2px)' }
+                              }}>
+                                <Typography variant="subtitle2" gutterBottom>Signature:</Typography>
+                                <DocumentLink url={selectedAdmission.signature} label="Signature" />
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      </Grid>
+
+                      {/* Educational Documents Section */}
+                      <Grid item xs={12}>
+                        <Paper sx={{ 
+                          p: 3, 
+                          mb: 3, 
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                        }}>
+                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                            Educational Documents
+                          </Typography>
+                          <Grid container spacing={3}>
+                            {[
+                              { label: '10th Marksheet', url: selectedAdmission.marksheet10th },
+                              { label: '10th Certificate', url: selectedAdmission.certificate10th },
+                              { label: '12th Marksheet', url: selectedAdmission.marksheet12th },
+                              { label: '12th Certificate', url: selectedAdmission.certificate12th },
+                              { label: 'Graduation Marksheet', url: selectedAdmission.graduationMarksheet }
+                            ].map((doc, index) => (
+                              <Grid item xs={12} md={4} key={index}>
+                                <Box sx={{ 
+                                  p: 2, 
+                                  border: '1px solid rgba(0,0,0,0.1)', 
+                                  borderRadius: 1,
+                                  bgcolor: 'rgba(255,255,255,0.5)',
+                                  transition: 'transform 0.2s',
+                                  '&:hover': { transform: 'translateY(-2px)' }
+                                }}>
+                                  <Typography variant="subtitle2" gutterBottom>{doc.label}:</Typography>
+                                  <DocumentLink url={doc.url} label={doc.label} />
+                                </Box>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </Paper>
+                      </Grid>
+
+                      {/* Entrance Exam Documents Section */}
+                      <Grid item xs={12}>
+                        <Paper sx={{ 
+                          p: 3, 
+                          mb: 3, 
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                        }}>
+                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                            Entrance Exam Documents
+                          </Typography>
+                          <Grid container spacing={3}>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ 
+                                p: 2, 
+                                border: '1px solid rgba(0,0,0,0.1)', 
+                                borderRadius: 1,
+                                bgcolor: 'rgba(255,255,255,0.5)',
+                                transition: 'transform 0.2s',
+                                '&:hover': { transform: 'translateY(-2px)' }
+                              }}>
+                                <Typography variant="subtitle2" gutterBottom>Admit Card:</Typography>
+                                <DocumentLink url={selectedAdmission.entranceAdmitCard} label="Admit Card" />
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <Box sx={{ 
+                                p: 2, 
+                                border: '1px solid rgba(0,0,0,0.1)', 
+                                borderRadius: 1,
+                                bgcolor: 'rgba(255,255,255,0.5)',
+                                transition: 'transform 0.2s',
+                                '&:hover': { transform: 'translateY(-2px)' }
+                              }}>
+                                <Typography variant="subtitle2" gutterBottom>Score Card:</Typography>
+                                <DocumentLink url={selectedAdmission.entranceScoreCard} label="Score Card" />
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      </Grid>
+
+                      {/* Other Documents Section */}
+                      <Grid item xs={12}>
+                        <Paper sx={{ 
+                          p: 3, 
+                          mb: 3, 
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                          borderRadius: 2,
+                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                        }}>
+                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                            Other Documents
+                          </Typography>
+                          <Grid container spacing={3}>
+                            {[
+                              { label: 'Provisional Certificate', url: selectedAdmission.provisionalCertificate },
+                              { label: 'Character Certificate', url: selectedAdmission.characterCertificate },
+                              { label: 'Medical Certificate', url: selectedAdmission.medicalCertificate },
+                              { label: 'Category Certificate', url: selectedAdmission.categoryCertificate },
+                              { label: 'Defence Certificate', url: selectedAdmission.defenceCertificate },
+                              { label: 'Aadhaar Card', url: selectedAdmission.aadhaarCard },
+                              { label: 'PAN Card', url: selectedAdmission.panCard }
+                            ].map((doc, index) => (
+                              <Grid item xs={12} md={4} key={index}>
+                                <Box sx={{ 
+                                  p: 2, 
+                                  border: '1px solid rgba(0,0,0,0.1)', 
+                                  borderRadius: 1,
+                                  bgcolor: 'rgba(255,255,255,0.5)',
+                                  transition: 'transform 0.2s',
+                                  '&:hover': { transform: 'translateY(-2px)' }
+                                }}>
+                                  <Typography variant="subtitle2" gutterBottom>{doc.label}:</Typography>
+                                  <DocumentLink url={doc.url} label={doc.label} />
+                                </Box>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Box>
                 )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Credentials Dialog with enhanced styling */}
+        <Dialog 
+          open={openCredentialsDialog} 
+          onClose={() => setOpenCredentialsDialog(false)}
+          PaperProps={{
+            sx: { 
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+              borderRadius: 4,
+              border: '1px solid rgba(255,255,255,0.3)'
+            }
+          }}
+        >
+          <DialogTitle>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">Update Admin Credentials</Typography>
+              <IconButton onClick={() => setOpenCredentialsDialog(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <Divider />
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Current Password"
+              type="password"
+              fullWidth
+              value={credentials.currentPassword}
+              onChange={(e) => setCredentials({ ...credentials, currentPassword: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="New Password"
+              type="password"
+              fullWidth
+              value={credentials.newPassword}
+              onChange={(e) => setCredentials({ ...credentials, newPassword: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Confirm New Password"
+              type="password"
+              fullWidth
+              value={credentials.confirmPassword}
+              onChange={(e) => setCredentials({ ...credentials, confirmPassword: e.target.value })}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setOpenCredentialsDialog(false)}>Cancel</Button>
+            <Button onClick={handleUpdateCredentials} variant="contained" color="primary">
+              Update
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
     </div>
   );
-} 
+};
+
+export default AdminDashboard;
