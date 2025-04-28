@@ -46,7 +46,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'https://acadxpert-main.onrender.com',
   headers: {
     'Content-Type': 'application/json'
   }
