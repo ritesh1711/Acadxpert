@@ -122,11 +122,8 @@ const admissionSchema = new mongoose.Schema({
     type: String
   },
   
-<<<<<<< HEAD
   // Document References - Required
-=======
   // Document References - Required documents
->>>>>>> abhi
   photo: {
     type: String // URL or file path
   },
@@ -134,11 +131,8 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
-<<<<<<< HEAD
   // Document References - Educational
-=======
   // Document References - Educational documents
->>>>>>> abhi
   marksheet10th: {
     type: String // URL or file path
   },
@@ -155,11 +149,8 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
-<<<<<<< HEAD
   // Semester marksheets
-=======
   // Document References - Semester marksheets
->>>>>>> abhi
   semester1: {
     type: String // URL or file path
   },
@@ -185,11 +176,8 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
-<<<<<<< HEAD
   // Entrance exam documents
-=======
   // Document References - Entrance exam documents
->>>>>>> abhi
   entranceAdmitCard: {
     type: String // URL or file path
   },
@@ -197,11 +185,8 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
-<<<<<<< HEAD
   // Other documents
-=======
   // Document References - Other documents
->>>>>>> abhi
   provisionalCertificate: {
     type: String // URL or file path
   },
@@ -232,8 +217,6 @@ const admissionSchema = new mongoose.Schema({
   panCard: {
     type: String // URL or file path
   },
-<<<<<<< HEAD
-=======
   
   // Document status tracking
   documentStatus: {
@@ -245,7 +228,6 @@ const admissionSchema = new mongoose.Schema({
   undertakingText: {
     type: String
   },
->>>>>>> abhi
   
   // User Reference
   userId: {
