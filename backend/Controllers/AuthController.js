@@ -5,7 +5,7 @@ const UserModel = require("../Models/User");
 
 const signup = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, course, semester } = req.body;
         const user = await UserModel.findOne({ email });
         if (user) {
             return res.status(409)
@@ -15,7 +15,9 @@ const signup = async (req, res) => {
         const userModel = new UserModel({ 
             name, 
             email, 
-            password
+            password,
+            course: course || 'MCA',
+            semester: semester || 1
         });
         userModel.password = await bcrypt.hash(password, 10);
         await userModel.save();
@@ -55,7 +57,9 @@ const login = async (req, res) => {
             {
                 email: user.email, 
                 _id: user.id,
-                isAdmin: user.isAdmin
+                isAdmin: user.isAdmin,
+                course: user.course,
+                semester: user.semester
             },
             process.env.JWT_SECRET,
             {expiresIn:"24h"}
@@ -68,7 +72,9 @@ const login = async (req, res) => {
                 jwtToken,
                 email,
                 name: user.name,
-                isAdmin: user.isAdmin
+                isAdmin: user.isAdmin,
+                course: user.course,
+                semester: user.semester
             });
     } catch (err) {
         console.error("Login error:", err);

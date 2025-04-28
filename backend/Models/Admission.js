@@ -10,8 +10,29 @@ const admissionSchema = new mongoose.Schema({
   nimcetRank: {
     type: String
   },
+  catRank: {
+    type: String
+  },
+  gateRank: {
+    type: String
+  },
   score: {
     type: String
+  },
+  
+  // Course Information
+  course: {
+    type: String,
+    required: true,
+    enum: ['MCA', 'MBA', 'MTech'],
+    default: 'MCA'
+  },
+  semester: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 4,
+    default: 1
   },
   
   // Candidate Information
@@ -101,7 +122,11 @@ const admissionSchema = new mongoose.Schema({
     type: String
   },
   
+<<<<<<< HEAD
   // Document References - Required
+=======
+  // Document References - Required documents
+>>>>>>> abhi
   photo: {
     type: String // URL or file path
   },
@@ -109,7 +134,11 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
+<<<<<<< HEAD
   // Document References - Educational
+=======
+  // Document References - Educational documents
+>>>>>>> abhi
   marksheet10th: {
     type: String // URL or file path
   },
@@ -126,7 +155,11 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
+<<<<<<< HEAD
   // Semester marksheets
+=======
+  // Document References - Semester marksheets
+>>>>>>> abhi
   semester1: {
     type: String // URL or file path
   },
@@ -152,7 +185,11 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
+<<<<<<< HEAD
   // Entrance exam documents
+=======
+  // Document References - Entrance exam documents
+>>>>>>> abhi
   entranceAdmitCard: {
     type: String // URL or file path
   },
@@ -160,7 +197,11 @@ const admissionSchema = new mongoose.Schema({
     type: String // URL or file path
   },
   
+<<<<<<< HEAD
   // Other documents
+=======
+  // Document References - Other documents
+>>>>>>> abhi
   provisionalCertificate: {
     type: String // URL or file path
   },
@@ -191,6 +232,20 @@ const admissionSchema = new mongoose.Schema({
   panCard: {
     type: String // URL or file path
   },
+<<<<<<< HEAD
+=======
+  
+  // Document status tracking
+  documentStatus: {
+    type: Object,
+    default: {}
+  },
+  
+  // Undertaking for pending documents
+  undertakingText: {
+    type: String
+  },
+>>>>>>> abhi
   
   // User Reference
   userId: {

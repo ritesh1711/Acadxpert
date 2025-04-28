@@ -7,6 +7,7 @@ export default function Home() {
     const [user, setUser] = useState(null);
     const [hasSubmittedAdmission, setHasSubmittedAdmission] = useState(false);
     const [submissionData, setSubmissionData] = useState(null);
+    const [hasPendingDocuments, setHasPendingDocuments] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -58,7 +59,10 @@ export default function Home() {
 
         const checkAdmissionStatus = async () => {
             const token = localStorage.getItem("token");
-            if (!token) return;
+            if (!token) {
+                navigate("/login");
+                return;
+            }
 
             try {
                 const response = await axios.get('https://acadxpert-main.onrender.com/admission/user/admission', {
@@ -70,12 +74,19 @@ export default function Home() {
                 if (response.data.success) {
                     setHasSubmittedAdmission(true);
                     setSubmissionData(response.data.data);
+                    
+                    // Check if there are pending documents
+                    if (response.data.data.documentStatus) {
+                        const hasPending = Object.values(response.data.data.documentStatus).some(status => status.pending);
+                        setHasPendingDocuments(hasPending);
+                    }
                 }
             } catch (err) {
-                // If 404, it means no submission exists, otherwise log the error
+                // If error is not 404 (not found), log it
                 if (err.response && err.response.status !== 404) {
                     console.error("Error checking admission status:", err);
                 }
+                // No need to handle 404 as it just means the user hasn't submitted a form yet
             }
         };
 
@@ -162,19 +173,30 @@ export default function Home() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 px-2 sm:px-0 w-full max-w-4xl">
                     {/* Admission Card - change appearance if already submitted */}
                     <div
-                        className={`bg-white p-4 sm:p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition cursor-pointer ${hasSubmittedAdmission ? 'border-2 border-green-500' : ''}`}
-                        onClick={() => navigate("/admission")}
+                        className={`bg-white p-4 sm:p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition ${hasSubmittedAdmission ? 'border-2 border-green-500' : 'cursor-pointer'}`}
+                        onClick={() => !hasSubmittedAdmission && navigate("/admission")}
                     >
                         <h2 className="text-xl font-bold text-purple-500 mb-2">📝 Admission Form</h2>
                         <p className="text-xs sm:text-sm text-gray-600">
                             {hasSubmittedAdmission 
-                                ? 'View your submitted admission application.' 
+                                ? 'Your admission application has been submitted.' 
                                 : 'Fill out and submit your admission details.'}
                         </p>
                         {hasSubmittedAdmission && (
-                            <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                                {submissionData.status === 'approved' ? 'Approved' : 'Submitted'}
-                            </span>
+                            <div className="mt-3">
+                                <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                                    {submissionData.status === 'approved' ? 'Approved' : 'Submitted'}
+                                </span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate("/view-admission-details");
+                                    }}
+                                    className="mt-2 block w-full px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded hover:bg-blue-200"
+                                >
+                                    View Details
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -186,6 +208,20 @@ export default function Home() {
                         <h2 className="text-xl font-bold text-green-500 mb-2">📢 Circular</h2>
                         <p className="text-xs sm:text-sm text-gray-600">View important announcements.</p>
                     </div>
+
+                    {/* Pending Documents Card - Show only if user has pending documents */}
+                    {hasPendingDocuments && (
+                        <div
+                            className="bg-white p-4 sm:p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition cursor-pointer border-2 border-yellow-400"
+                            onClick={() => navigate("/update-pending-documents")}
+                        >
+                            <h2 className="text-xl font-bold text-yellow-600 mb-2">📤 Update Documents</h2>
+                            <p className="text-xs sm:text-sm text-gray-600">Upload your pending documents.</p>
+                            <span className="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
+                                Pending
+                            </span>
+                        </div>
+                    )}
 
                     {/* Feedback Card */}
                     <div

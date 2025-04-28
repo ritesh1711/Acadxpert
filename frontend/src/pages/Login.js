@@ -48,13 +48,15 @@ export default function Login() {
 
       const result = await response.json();
       console.log(result);
-      const { success, message, jwtToken, error, name, isAdmin } = result;
+      const { success, message, jwtToken, error, name, isAdmin, course, semester } = result;
 
       if (success) {
         toast.success("Login successful!");
         localStorage.setItem("token", jwtToken); // Store JWT token
         localStorage.setItem("name", name); // Store name
         localStorage.setItem("isAdmin", isAdmin || false); // Store admin status
+        localStorage.setItem("course", course || "MCA"); // Store course
+        localStorage.setItem("semester", semester || "1"); // Store semester
         
         setTimeout(() => {
           // Redirect to admin dashboard if admin, otherwise to home

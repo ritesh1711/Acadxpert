@@ -7,35 +7,57 @@ const fs = require('fs');
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // Create uploads directory if it doesn't exist
-    const uploadDir = 'uploads';
+    const uploadDir = path.join(__dirname, '..', 'uploads');
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+      try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        console.log(`Created uploads directory at ${uploadDir}`);
+      } catch (err) {
+        console.error(`Error creating uploads directory: ${err.message}`);
+        return cb(new Error(`Could not create uploads directory: ${err.message}`));
+      }
     }
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Generate a unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    try {
+      // Generate a unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
+      console.log(`Generated filename: ${filename} for ${file.fieldname}`);
+      cb(null, filename);
+    } catch (err) {
+      console.error(`Error generating filename: ${err.message}`);
+      cb(new Error(`Error generating filename: ${err.message}`));
+    }
   }
 });
 
 // File filter to accept only images and PDFs
 const fileFilter = (req, file, cb) => {
-  if (file.fieldname === 'photo' || file.fieldname === 'signature') {
-    // Accept only images for photo and signature
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
+  try {
+    console.log(`Processing file: ${file.fieldname}, mimetype: ${file.mimetype}`);
+    
+    if (file.fieldname === 'photo' || file.fieldname === 'signature') {
+      // Accept only images for photo and signature
+      if (file.mimetype.startsWith('image/')) {
+        return cb(null, true);
+      } else {
+        console.error(`Invalid file type for ${file.fieldname}: ${file.mimetype}`);
+        return cb(new Error(`Only image files are allowed for ${file.fieldname}!`), false);
+      }
     } else {
-      cb(new Error('Only image files are allowed for photo and signature!'), false);
+      // For other documents, accept both PDFs and images
+      if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
+        return cb(null, true);
+      } else {
+        console.error(`Invalid file type for ${file.fieldname}: ${file.mimetype}`);
+        return cb(new Error(`Only PDF or image files are allowed for ${file.fieldname}!`), false);
+      }
     }
-  } else {
-    // Accept only PDFs for other documents
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF files are allowed for documents!'), false);
-    }
+  } catch (err) {
+    console.error(`Error in file filter: ${err.message}`);
+    return cb(new Error(`Error processing file: ${err.message}`));
   }
 };
 
@@ -44,7 +66,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit (increased from 5MB)
+    fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
 
@@ -104,6 +126,8 @@ exports.submitAdmission = async (req, res) => {
 
     // Check if any files were uploaded
     const files = req.files || {};
+    console.log('Uploaded files:', Object.keys(files).length ? Object.keys(files).join(', ') : 'none');
+    
     const filePaths = {};
     
     // Check for required files
@@ -111,6 +135,7 @@ exports.submitAdmission = async (req, res) => {
     const missingFiles = requiredFiles.filter(file => !files[file]);
     
     if (missingFiles.length > 0) {
+      console.error('Missing required files:', missingFiles.join(', '));
       return res.status(400).json({
         success: false,
         message: 'Missing required files',
@@ -120,13 +145,27 @@ exports.submitAdmission = async (req, res) => {
     
     // Map file paths to their respective fields if files are provided
     Object.keys(files).forEach(fieldName => {
-      filePaths[fieldName] = files[fieldName][0].path.replace(/\\/g, '/');
+      const relativePath = files[fieldName][0].path.replace(/\\/g, '/');
+      filePaths[fieldName] = relativePath;
+      console.log(`File path for ${fieldName}: ${relativePath}`);
     });
 
     // Generate a unique application number if not provided
     let applicationNo = req.body.applicationNo;
     if (!applicationNo) {
       applicationNo = 'APP' + Date.now().toString().slice(-6);
+      console.log(`Generated application number: ${applicationNo}`);
+    }
+
+    // Process document status if provided
+    let documentStatus = {};
+    if (req.body.documentStatus) {
+      try {
+        documentStatus = JSON.parse(req.body.documentStatus);
+        console.log('Document status parsed successfully');
+      } catch (error) {
+        console.error('Error parsing document status:', error);
+      }
     }
 
     // Create new admission record
@@ -135,8 +174,21 @@ exports.submitAdmission = async (req, res) => {
       ...filePaths,
       applicationNo,
       userId: req.user._id,
-      status: 'submitted'  // Explicitly set status to submitted
+      status: 'submitted',  // Explicitly set status to submitted
+      documentStatus: documentStatus
     };
+    
+    // Add undertaking text if provided
+    if (req.body.undertakingText) {
+      admissionData.undertakingText = req.body.undertakingText;
+    }
+    
+    console.log('Creating admission record with data:', JSON.stringify({
+      applicationNo: admissionData.applicationNo,
+      email: admissionData.email,
+      nameEnglish: admissionData.nameEnglish,
+      documentCount: Object.keys(filePaths).length
+    }));
     
     // Validate required fields
     const admission = new Admission(admissionData);
@@ -148,6 +200,7 @@ exports.submitAdmission = async (req, res) => {
         return `${fieldName} ${err.message}`;
       });
       
+      console.error('Validation errors:', errorMessages);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -156,14 +209,15 @@ exports.submitAdmission = async (req, res) => {
     }
 
     // Save to database
-    await admission.save();
+    const savedAdmission = await admission.save();
+    console.log(`Admission record saved with ID: ${savedAdmission._id}`);
 
     res.status(201).json({
       success: true,
       message: 'Admission form submitted successfully',
       data: {
-        applicationNo: admission.applicationNo,
-        id: admission._id
+        applicationNo: savedAdmission.applicationNo,
+        id: savedAdmission._id
       }
     });
   } catch (error) {
@@ -172,19 +226,24 @@ exports.submitAdmission = async (req, res) => {
     // Clean up uploaded files if there's an error
     if (req.files) {
       Object.keys(req.files).forEach(fieldName => {
-        const filePath = req.files[fieldName][0].path;
         try {
-          fs.unlinkSync(filePath);
+          const filePath = req.files[fieldName][0].path;
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`Cleaned up file: ${filePath}`);
+          }
         } catch (cleanupError) {
-          console.error(`Error cleaning up file ${filePath}:`, cleanupError);
+          console.error(`Error cleaning up file for ${fieldName}:`, cleanupError);
         }
       });
     }
 
+    // Send detailed error response
     res.status(500).json({
       success: false,
       message: 'Error submitting admission form',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -236,6 +295,77 @@ exports.getAdmissionByUserId = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching admission details',
+      error: error.message
+    });
+  }
+};
+
+// Update pending documents
+exports.updatePendingDocuments = async (req, res) => {
+  try {
+    // Find the user's admission record
+    const admission = await Admission.findOne({ userId: req.user._id });
+    
+    if (!admission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admission record not found for this user'
+      });
+    }
+    
+    // Get the document status
+    const documentStatus = admission.documentStatus || {};
+    
+    // Check if any files were uploaded
+    const files = req.files || {};
+    const updatedFilePaths = {};
+    
+    // Process each uploaded file
+    Object.keys(files).forEach(fieldName => {
+      // Update file path in admission record
+      updatedFilePaths[fieldName] = files[fieldName][0].path.replace(/\\/g, '/');
+      
+      // If this was a pending document, update its status
+      if (documentStatus[fieldName] && documentStatus[fieldName].pending) {
+        documentStatus[fieldName].pending = false;
+      }
+    });
+    
+    // Update admission record with new files and status
+    const updatedAdmission = await Admission.findByIdAndUpdate(
+      admission._id, 
+      { 
+        $set: { 
+          ...updatedFilePaths,
+          documentStatus: documentStatus 
+        } 
+      },
+      { new: true }
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: 'Documents updated successfully',
+      data: updatedAdmission
+    });
+  } catch (error) {
+    console.error('Error updating pending documents:', error);
+    
+    // Clean up uploaded files if there's an error
+    if (req.files) {
+      Object.keys(req.files).forEach(fieldName => {
+        const filePath = req.files[fieldName][0].path;
+        try {
+          fs.unlinkSync(filePath);
+        } catch (cleanupError) {
+          console.error(`Error cleaning up file ${filePath}:`, cleanupError);
+        }
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error updating pending documents',
       error: error.message
     });
   }
