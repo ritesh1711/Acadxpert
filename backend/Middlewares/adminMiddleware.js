@@ -17,7 +17,7 @@ const verifyAdmin = (req, res, next) => {
     // Check if user is admin
     if (!decoded.isAdmin) {
       return res.status(403).json({ 
-        message: 'Access denied: Admin privileges required', 
+        message: 'Access denied: Admin privileges  required', 
         success: false 
       });
     }
