@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminSettings from './pages/AdminSettings';
 import UpdatePendingDocuments from './pages/UpdatePendingDocuments';
 import ViewAdmissionDetails from './pages/ViewAdmissionDetails';
+import Circular from './pages/Circular';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,6 +44,7 @@ function App() {
         <Route path="/confirmation" element={<Confirmation />} />
         <Route path="/update-pending-documents" element={<PrivateRoute element={<UpdatePendingDocuments />} />} />
         <Route path="/view-admission-details" element={<PrivateRoute element={<ViewAdmissionDetails />} />} />
+        <Route path="/circular" element={<PrivateRoute element={<Circular />} />} />
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

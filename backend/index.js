@@ -1,4 +1,6 @@
 const express = require("express");
+const app = express(); // ✅ MOVE THIS TO THE TOP
+
 const mongoose = require('mongoose');
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -10,10 +12,13 @@ const multer = require('multer');
 
 const authRoutes = require("./Routes/AuthRouter");
 const admissionRoutes = require("./Routes/AdmissionRouter");
-const adminRoutes = require("./Routes/AdminRouter");
+const adminRoutes = require("./Routes/AdminRouter"); // ✅ Moved down (still fine)
+
 const verifyDocumentAccess = require("./Middlewares/uploadMiddleware");
 
 const PORT = process.env.PORT || 8000;
+
+// ✅ Remove the old misplaced app.use(adminRoutes) here
 
 // Debug logging for environment variables
 console.log('Environment variables:');
@@ -32,7 +37,6 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Enable CORS
-const app = express();
 app.use(cors());
 
 // Connect to MongoDB
@@ -50,117 +54,73 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the uploads directory with authentication
+// Static file serving with middleware
 app.use('/uploads', (req, res, next) => {
   console.log("Uploads access request:", req.url);
   next();
-}, verifyDocumentAccess, express.static(path.join(__dirname, 'uploads')));
+}, express.static(path.join(__dirname, 'uploads')));
 
-// For debugging - create a direct route to test file access
+// Test route
 app.get('/test-file-access/:filename', (req, res) => {
   try {
-    // Validate and sanitize the filename
     const filename = req.params.filename;
-    
-    // Check for path traversal attempts
     if (!filename || filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
-      console.error("Invalid filename requested:", filename);
       return res.status(400).send('Invalid filename');
     }
-    
+
     const filePath = path.join(__dirname, 'uploads', filename);
-    console.log("Testing access to:", filePath);
-    
     fs.access(filePath, fs.constants.F_OK, (err) => {
-      if (err) {
-        console.error(`File not found: ${filename}`, err.message);
-        return res.status(404).send(`File not found: ${filename}`);
-      }
-      
-      // Check file extension for appropriate content-type handling
+      if (err) return res.status(404).send(`File not found: ${filename}`);
       const ext = path.extname(filename).toLowerCase();
-      if (ext === '.pdf') {
-        res.setHeader('Content-Type', 'application/pdf');
-      } else if (['.jpg', '.jpeg'].includes(ext)) {
-        res.setHeader('Content-Type', 'image/jpeg');
-      } else if (ext === '.png') {
-        res.setHeader('Content-Type', 'image/png');
-      }
-      
+      if (ext === '.pdf') res.setHeader('Content-Type', 'application/pdf');
+      else if (['.jpg', '.jpeg'].includes(ext)) res.setHeader('Content-Type', 'image/jpeg');
+      else if (ext === '.png') res.setHeader('Content-Type', 'image/png');
+
       return res.sendFile(filePath);
     });
   } catch (error) {
-    console.error("Error in test-file-access:", error);
     return res.status(500).send('Internal Server Error');
   }
 });
 
-app.use("/auth", authRoutes); // ✅ Ensure this route is present
-app.use("/admission", admissionRoutes); // Add admission routes
-app.use("/admin", adminRoutes); // Add admin routes
+// ✅ Register your routes AFTER app is defined
+app.use("/auth", authRoutes);
+app.use("/admission", admissionRoutes);
+app.use("/admin", adminRoutes); //
 
-// Error handling middleware
+
+// Global error handler
 app.use((err, req, res, next) => {
-  // Log the full error details
-  console.error('Global error handler triggered:');
-  console.error('Error message:', err.message);
-  console.error('Error stack:', err.stack);
-  
-  // Check for specific error types
+  console.error('Global error handler triggered:', err.message);
+
   if (err instanceof multer.MulterError) {
-    // Multer-specific errors
     let errorMessage = 'File upload error';
-    
-    switch (err.code) {
-      case 'LIMIT_FILE_SIZE':
-        errorMessage = 'File is too large. Maximum size is 10MB';
-        return res.status(413).json({
-          success: false,
-          message: errorMessage,
-          error: err.message
-        });
-      case 'LIMIT_UNEXPECTED_FILE':
-        errorMessage = `Unexpected field: ${err.field}`;
-        break;
-      default:
-        errorMessage = `File upload error: ${err.message}`;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ success: false, message: 'File too large', error: err.message });
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      errorMessage = `Unexpected field: ${err.field}`;
+    } else {
+      errorMessage = `File upload error: ${err.message}`;
     }
-    
-    return res.status(400).json({
-      success: false,
-      message: errorMessage,
-      error: err.message
-    });
+    return res.status(400).json({ success: false, message: errorMessage });
   }
-  
-  // MongoDB validation errors
+
   if (err.name === 'ValidationError') {
     const errors = Object.values(err.errors).map(e => e.message);
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      errors: errors
-    });
+    return res.status(400).json({ success: false, message: 'Validation error', errors });
   }
-  
-  // JSON parsing errors
+
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid JSON',
-      error: 'Bad request: Invalid JSON format'
-    });
+    return res.status(400).json({ success: false, message: 'Invalid JSON format' });
   }
-  
-  // Default 500 error
+
   res.status(500).json({
     success: false,
     message: 'Internal Server Error',
-    error: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    error: err.message
   });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

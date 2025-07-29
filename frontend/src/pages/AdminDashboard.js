@@ -46,114 +46,65 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://acadxpert-main.onrender.com',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  baseURL: 'http://localhost:8000', // Changed to local backend
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Add request interceptor to add token
+// Add token to each request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Course options from the Admission model
+// Course & Semester options
 const COURSES = ['MCA', 'MBA', 'MTech'];
-
-// Semester options from the Admission model (1 to 4)
-const SEMESTERS = Array.from({ length: 4 }, (_, i) => i + 1);
+const SEMESTERS = [1, 2, 3, 4];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+
+  // Admissions state
   const [admissions, setAdmissions] = useState([]);
   const [filteredAdmissions, setFilteredAdmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Dialog & UI states
   const [selectedAdmission, setSelectedAdmission] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openCredentialsDialog, setOpenCredentialsDialog] = useState(false);
-  const [credentials, setCredentials] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [stats, setStats] = useState({
-    total: 0
-  });
+  const [credentials, setCredentials] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [stats, setStats] = useState({ total: 0 });
   const [activeTab, setActiveTab] = useState('details');
 
-  // Filter states
+  // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
+
+  // Circular upload states
+  const [circularTitle, setCircularTitle] = useState('');
+  const [circularFile, setCircularFile] = useState(null);
+  const [uploadingCircular, setUploadingCircular] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
 
   useEffect(() => {
     fetchAdmissions();
   }, []);
 
-  // Effect for filtering
   useEffect(() => {
     filterAdmissions();
   }, [searchQuery, selectedCourse, selectedSemester, admissions]);
 
-  const filterAdmissions = () => {
-    let filtered = [...admissions];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(admission => 
-        admission.name?.toLowerCase().includes(query) ||
-        admission.email?.toLowerCase().includes(query)
-      );
-    }
-
-    if (selectedCourse) {
-      filtered = filtered.filter(admission => 
-        admission.course === selectedCourse
-      );
-    }
-
-    if (selectedSemester) {
-      filtered = filtered.filter(admission => 
-        admission.semester === selectedSemester
-      );
-    }
-
-    setFilteredAdmissions(filtered);
-    setStats({
-      total: filtered.length
-    });
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
-  };
-
-  const handleCourseChange = (event) => {
-    setSelectedCourse(event.target.value);
-  };
-
-  const handleSemesterChange = (event) => {
-    setSelectedSemester(event.target.value);
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCourse('');
-    setSelectedSemester('');
-  };
-
   const fetchAdmissions = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/admissions');
-      const admissionsData = response.data?.data || [];
-      setAdmissions(admissionsData);
-      setStats({ total: admissionsData.length });
+      const response = await api.get('/admin/admissions'); // GET all admissions
+      const data = response.data?.data || [];
+      setAdmissions(data);
+      setStats({ total: data.length });
       setError(null);
     } catch (err) {
       console.error('Error fetching admissions:', err);
@@ -164,105 +115,77 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleViewDetails = (admission) => {
-    setSelectedAdmission(admission);
-    setOpenDialog(true);
-  };
+  const filterAdmissions = () => {
+    let filtered = [...admissions];
 
-  const handleUpdateCredentials = async () => {
-    if (credentials.newPassword !== credentials.confirmPassword) {
-      setError('New passwords do not match');
-      return;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) => a.name?.toLowerCase().includes(query) || a.email?.toLowerCase().includes(query)
+      );
     }
+    if (selectedCourse) filtered = filtered.filter((a) => a.course === selectedCourse);
+    if (selectedSemester) filtered = filtered.filter((a) => a.semester === selectedSemester);
 
-    try {
-      await api.post('/admin/update-credentials', {
-        currentPassword: credentials.currentPassword,
-        newPassword: credentials.newPassword,
-      });
-      setOpenCredentialsDialog(false);
-      setCredentials({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setError(null);
-    } catch (err) {
-      setError('Failed to update credentials. Please check your current password.');
-      console.error('Error updating credentials:', err);
-    }
+    setFilteredAdmissions(filtered);
+    setStats({ total: filtered.length });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
+  // Format date helper
   const formatDate = (dateObj) => {
     if (!dateObj) return 'Not provided';
     return `${dateObj.day}/${dateObj.month}/${dateObj.year}`;
   };
 
+  // Document download button
   const DocumentLink = ({ url, label }) => {
     if (!url) return <Typography color="error">Not uploaded</Typography>;
-    
+
     const handleDownload = async () => {
       try {
-        // Extract just the filename from the path
         const filename = url.split('/').pop();
-        if (!filename) {
-          throw new Error('Invalid file path');
-        }
+        if (!filename) throw new Error('Invalid file path');
 
-        // Get the authentication token
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Authentication token not found');
+        if (!token) throw new Error('Authentication token not found');
+
+        // If circulars are stored in uploads/circulars, adjust the path accordingly
+        // For other documents, keep uploads/
+        let downloadUrl;
+        if (url.includes('circulars')) {
+          downloadUrl = `${api.defaults.baseURL}/uploads/circulars/${filename}`;
+        } else {
+          downloadUrl = `${api.defaults.baseURL}/uploads/${filename}`;
         }
 
-        // Create the download URL with the filename and token
-        const downloadUrl = `${api.defaults.baseURL}/uploads/${filename}?token=${token}`;
-        
-        console.log('Attempting to download from:', downloadUrl); // Debug log
-        
         const response = await fetch(downloadUrl, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
         if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('File not found on server');
-          }
+          if (response.status === 404) throw new Error('File not found on server');
           throw new Error(`Server error: ${response.status}`);
-        }
-        
-        // Get content type from response
-        const contentType = response.headers.get('Content-Type');
-        if (!contentType) {
-          throw new Error('No content type specified by server');
         }
 
         const blob = await response.blob();
-        if (blob.size === 0) {
-          throw new Error('Downloaded file is empty');
-        }
-
-        // Create object URL for download
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        
-        // Set filename based on content type if not specified
-        const fileExtension = contentType.split('/').pop().replace('jpeg', 'jpg');
-        const cleanLabel = label.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        link.download = `${cleanLabel}.${fileExtension}`;
-        
-        // Trigger download
+
+        // Guess extension from content-type
+        const contentType = response.headers.get('Content-Type');
+        let extension = 'pdf';
+        if (contentType) {
+          extension = contentType.split('/')[1] || 'pdf';
+          if (extension === 'jpeg') extension = 'jpg';
+        }
+
+        link.download = `${label.toLowerCase().replace(/[^a-z0-9]/g, '_')}.${extension}`;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         window.URL.revokeObjectURL(blobUrl);
       } catch (error) {
-        console.error('Error downloading document:', error);
-        console.error('URL attempted:', url);
+        console.error('Download error:', error);
         alert(`Failed to download ${label}: ${error.message}`);
       }
     };
@@ -272,25 +195,85 @@ const AdminDashboard = () => {
         onClick={handleDownload}
         variant="contained"
         size="small"
+        startIcon={<DownloadIcon />}
         sx={{
           background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
           color: 'white',
-          boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
           '&:hover': {
             background: 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
             transform: 'translateY(-2px)',
-            transition: 'transform 0.2s'
+            transition: 'transform 0.2s',
           },
-          '&:disabled': {
-            background: 'rgba(0, 0, 0, 0.12)',
-            boxShadow: 'none'
-          }
+          '&:disabled': { background: 'rgba(0,0,0,0.12)', boxShadow: 'none' },
         }}
-        startIcon={<DownloadIcon />}
       >
         Download {label}
       </Button>
     );
+  };
+
+  // Circular upload handler
+  const handleUploadCircular = async () => {
+    if (!circularTitle || !circularFile) return;
+    setUploadingCircular(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', circularTitle);
+      formData.append('pdf', circularFile);
+
+      const response = await api.post('/admin/circulars', formData, { // POST circular
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        setUploadSuccess('Circular uploaded successfully');
+        setCircularTitle('');
+        setCircularFile(null);
+      } else {
+        setUploadError('Failed to upload circular');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.response?.data?.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingCircular(false);
+    }
+  };
+
+  // View admission details dialog controls
+  const handleViewDetails = (admission) => {
+    setSelectedAdmission(admission);
+    setOpenDialog(true);
+  };
+
+  // Admin credentials update handler
+  const handleUpdateCredentials = async () => {
+    if (credentials.newPassword !== credentials.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    try {
+      await api.post('/admin/update-credentials', { // POST update credentials
+        currentPassword: credentials.currentPassword,
+        newPassword: credentials.newPassword,
+      });
+      setOpenCredentialsDialog(false);
+      setCredentials({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setError(null);
+      alert('Credentials updated successfully');
+    } catch (err) {
+      setError('Failed to update credentials. Please check your current password.');
+      console.error('Error updating credentials:', err);
+    }
+  };
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
   if (loading) {
@@ -303,33 +286,36 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600">
-      {/* Navbar with enhanced styling */}
-      <Box sx={{ 
-        bgcolor: 'rgba(255, 255, 255, 0.15)', 
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.3)',
-        py: 2,
-        px: 3,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000
-      }}>
+      {/* Navbar */}
+      <Box
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.3)',
+          py: 2,
+          px: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 30px rgba(0,0,0,0.1)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+        }}
+      >
         <Box display="flex" alignItems="center">
-          <SchoolIcon sx={{ 
-            fontSize: 40, 
-            color: 'white',
-            mr: 2,
-            filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))'
-          }} />
-          <Typography variant="h5" sx={{ 
-            color: 'white', 
-            fontWeight: 600,
-            textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
-          }}>
+          <SchoolIcon
+            sx={{
+              fontSize: 40,
+              color: 'white',
+              mr: 2,
+              filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))',
+            }}
+          />
+          <Typography
+            variant="h5"
+            sx={{ color: 'white', fontWeight: 600, textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}
+          >
             Admin Dashboard
           </Typography>
         </Box>
@@ -337,16 +323,16 @@ const AdminDashboard = () => {
           <Button
             variant="contained"
             onClick={() => setOpenCredentialsDialog(true)}
-            sx={{ 
+            sx={{
               mr: 2,
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
+              bgcolor: 'rgba(255,255,255,0.2)',
               backdropFilter: 'blur(10px)',
-              '&:hover': { 
-                bgcolor: 'rgba(255, 255, 255, 0.3)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.3)',
                 transform: 'translateY(-2px)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
               },
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
             }}
           >
             Update Credentials
@@ -361,9 +347,9 @@ const AdminDashboard = () => {
               '&:hover': {
                 background: 'linear-gradient(45deg, #FF8E53 30%, #FE6B8B 90%)',
                 transform: 'translateY(-2px)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
               },
-              boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
+              boxShadow: '0 3px 5px 2px rgba(255,105,135,.3)',
             }}
           >
             Logout
@@ -373,48 +359,42 @@ const AdminDashboard = () => {
 
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         {error && (
-          <Alert 
-            severity="error" 
-            sx={{ 
-              mb: 2,
-              borderRadius: 2,
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-            }}
+          <Alert
+            severity="error"
+            sx={{ mb: 2, borderRadius: 2, boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
           >
             {error}
           </Alert>
         )}
 
-        {/* Stats Card with enhanced styling */}
+        {/* Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12}>
-            <Card sx={{ 
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              borderRadius: 4,
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.3)'
-            }}>
+            <Card
+              sx={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                borderRadius: 4,
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            >
               <CardContent sx={{ p: 4 }}>
-                <Typography 
-                  color="textSecondary" 
+                <Typography
+                  color="textSecondary"
                   gutterBottom
-                  sx={{ 
-                    fontSize: '1.2rem',
-                    fontWeight: 500,
-                    color: 'rgba(0,0,0,0.7)'
-                  }}
+                  sx={{ fontSize: '1.2rem', fontWeight: 500, color: 'rgba(0,0,0,0.7)' }}
                 >
                   Total Applications
                 </Typography>
-                <Typography 
-                  variant="h2" 
-                  sx={{ 
+                <Typography
+                  variant="h2"
+                  sx={{
                     fontWeight: 600,
                     background: 'linear-gradient(45deg, #2196F3, #21CBF3)',
                     WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
+                    WebkitTextFillColor: 'transparent',
                   }}
                 >
                   {stats.total}
@@ -424,26 +404,28 @@ const AdminDashboard = () => {
           </Grid>
         </Grid>
 
-        {/* Filters with enhanced styling */}
-        <Paper sx={{ 
-          p: 3, 
-          mb: 3,
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-          borderRadius: 4,
-          border: '1px solid rgba(255,255,255,0.3)'
-        }}>
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
-            spacing={2} 
+        {/* Filters */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.3)',
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
             alignItems="center"
             sx={{
               '& .MuiTextField-root, & .MuiFormControl-root': {
                 background: 'rgba(255,255,255,0.9)',
                 borderRadius: 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-              }
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              },
             }}
           >
             <TextField
@@ -451,7 +433,7 @@ const AdminDashboard = () => {
               variant="outlined"
               size="small"
               value={searchQuery}
-              onChange={handleSearchChange}
+              onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 200 }}
               InputProps={{
                 startAdornment: (
@@ -463,11 +445,7 @@ const AdminDashboard = () => {
             />
             <FormControl size="small" sx={{ minWidth: 200 }}>
               <InputLabel>Course</InputLabel>
-              <Select
-                value={selectedCourse}
-                onChange={handleCourseChange}
-                label="Course"
-              >
+              <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} label="Course">
                 <MenuItem value="">All Courses</MenuItem>
                 {COURSES.map((course) => (
                   <MenuItem key={course} value={course}>
@@ -480,42 +458,87 @@ const AdminDashboard = () => {
               <InputLabel>Semester</InputLabel>
               <Select
                 value={selectedSemester}
-                onChange={handleSemesterChange}
+                onChange={(e) => setSelectedSemester(e.target.value)}
                 label="Semester"
               >
                 <MenuItem value="">All Semesters</MenuItem>
-                {SEMESTERS.map((semester) => (
-                  <MenuItem key={semester} value={semester}>
-                    Semester {semester}
+                {SEMESTERS.map((sem) => (
+                  <MenuItem key={sem} value={sem}>
+                    Semester {sem}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Button
-              variant="outlined"
-              onClick={clearFilters}
-              size="small"
-            >
+            <Button variant="outlined" onClick={() => {
+              setSearchQuery('');
+              setSelectedCourse('');
+              setSelectedSemester('');
+            }} size="small">
               Clear Filters
             </Button>
           </Stack>
         </Paper>
 
-        {/* Applications Table with enhanced styling */}
-        <TableContainer component={Paper} sx={{ 
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-          borderRadius: 4,
-          border: '1px solid rgba(255,255,255,0.3)',
-          overflow: 'hidden',
-          '& .MuiTableHead-root': {
-            background: 'rgba(33, 150, 243, 0.1)'
-          },
-          '& .MuiTableRow-root:hover': {
-            background: 'rgba(33, 150, 243, 0.05)'
-          }
-        }}>
+        {/* Admin Upload Circular Form */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 4,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.5)',
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Upload Circular (PDF)
+          </Typography>
+          <TextField
+            label="Title"
+            value={circularTitle}
+            onChange={(e) => setCircularTitle(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setCircularFile(e.target.files?.[0])}
+            style={{ marginBottom: 16 }}
+          />
+          {uploadError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {uploadError}
+            </Alert>
+          )}
+          {uploadSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {uploadSuccess}
+            </Alert>
+          )}
+          <Button
+            variant="contained"
+            disabled={uploadingCircular || !circularTitle || !circularFile}
+            onClick={handleUploadCircular}
+          >
+            {uploadingCircular ? 'Uploading...' : 'Upload'}
+          </Button>
+        </Paper>
+
+        {/* Admissions Table */}
+        <TableContainer
+          component={Paper}
+          sx={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.3)',
+            overflow: 'hidden',
+            '& .MuiTableHead-root': { background: 'rgba(33,150,243,0.1)' },
+            '& .MuiTableRow-root:hover': { background: 'rgba(33,150,243,0.05)' },
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
@@ -523,7 +546,9 @@ const AdminDashboard = () => {
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Course</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Semester</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem' }}>Actions</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -563,21 +588,21 @@ const AdminDashboard = () => {
           </Table>
         </TableContainer>
 
-        {/* Details Dialog with enhanced styling */}
-        <Dialog 
-          open={openDialog} 
-          onClose={() => setOpenDialog(false)} 
-          maxWidth="lg" 
+        {/* Admission Details Dialog */}
+        <Dialog
+          open={openDialog}
+          onClose={() => setOpenDialog(false)}
+          maxWidth="lg"
           fullWidth
           PaperProps={{
-            sx: { 
+            sx: {
               minHeight: '80vh',
               background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
               backdropFilter: 'blur(20px)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
               borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.3)'
-            }
+              border: '1px solid rgba(255,255,255,0.3)',
+            },
           }}
         >
           <DialogTitle>
@@ -595,6 +620,8 @@ const AdminDashboard = () => {
           </DialogTitle>
           <Divider />
           <DialogContent>
+            {/* Admission details UI omitted for brevity—reuse your existing details UI */}
+            {/* Just ensure you toggle tabs and display details & documents */}
             {selectedAdmission && (
               <>
                 <Tabs
@@ -714,7 +741,7 @@ const AdminDashboard = () => {
                       background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                       boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                       borderRadius: 2,
-                      border: '1px solid rgba(33, 150, 243, 0.1)'
+                      border: '1px solid rgba(33, 150,243, 0.1)'
                     }}>
                       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                         Pending Documents Status
@@ -784,7 +811,7 @@ const AdminDashboard = () => {
                           background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                           borderRadius: 2,
-                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                          border: '1px solid rgba(33, 150,243, 0.1)'
                         }}>
                           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                             Personal Documents
@@ -828,7 +855,7 @@ const AdminDashboard = () => {
                           background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                           borderRadius: 2,
-                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                          border: '1px solid rgba(33, 150,243, 0.1)'
                         }}>
                           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                             Educational Documents
@@ -867,7 +894,7 @@ const AdminDashboard = () => {
                           background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                           borderRadius: 2,
-                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                          border: '1px solid rgba(33, 150,243, 0.1)'
                         }}>
                           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                             Entrance Exam Documents
@@ -911,7 +938,7 @@ const AdminDashboard = () => {
                           background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                           boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                           borderRadius: 2,
-                          border: '1px solid rgba(33, 150, 243, 0.1)'
+                          border: '1px solid rgba(33, 150,243, 0.1)'
                         }}>
                           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
                             Other Documents
@@ -951,18 +978,18 @@ const AdminDashboard = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Credentials Dialog with enhanced styling */}
-        <Dialog 
-          open={openCredentialsDialog} 
+        {/* Credentials Update Dialog */}
+        <Dialog
+          open={openCredentialsDialog}
           onClose={() => setOpenCredentialsDialog(false)}
           PaperProps={{
-            sx: { 
+            sx: {
               background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
               backdropFilter: 'blur(20px)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
               borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.3)'
-            }
+              border: '1px solid rgba(255,255,255,0.3)',
+            },
           }}
         >
           <DialogTitle>
@@ -1012,4 +1039,6 @@ const AdminDashboard = () => {
   );
 };
 
+
+    
 export default AdminDashboard;

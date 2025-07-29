@@ -82,7 +82,7 @@ export default function AdmissionForm() {
           return;
         }
 
-        const response = await axios.get('https://acadxpert-main.onrender.com/admission/user/admission', {
+        const response = await axios.get('http://localhost:8000/admission/user/admission', {
           headers: {
             Authorization: `Bearer ${token}`
           }
