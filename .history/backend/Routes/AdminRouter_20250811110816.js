@@ -4,7 +4,6 @@ const verifyAdmin = require('../Middlewares/adminMiddleware');
 const multer = require('multer');
 const { getAllCirculars } = require('../Controllers/AdminController');  
 const path = require('path');
-const authMiddleware = require('../Middlewares/authMiddleware'); // Adjust path as needed
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -32,9 +31,7 @@ const {
   getAdmissionById,
   updateAdmissionStatus,
   updateAdminCredentials,
-  addCircular,
-  getAllCircularsForAdmin,
-  deleteCircular
+  addCircular
 } = require('../Controllers/AdminController');
 
 // Get all admissions
@@ -49,13 +46,9 @@ router.patch('/admissions/:id/status', verifyAdmin, updateAdmissionStatus);
 // Update admin credentials
 router.post('/update-credentials', verifyAdmin, updateAdminCredentials);
 
-router.post('/circulars', verifyAdmin, upload.single('pdf'), addCircular);
+router.post('/circulars',  upload.single('pdf'), addCircular);
 
-router.get('/getcirculars', authMiddleware ,getAllCirculars);
-router.get('/circulars', verifyAdmin, getAllCircularsForAdmin); 
-router.delete('/circulars/:id', verifyAdmin, deleteCircular);
-// Alias route to avoid any client caching/method issues
-router.delete('/delete-circular/:id', verifyAdmin, deleteCircular);
+router.get('/circulars', authMiddleware, ,getAllCirculars); 
 
 
 module.exports = router; 

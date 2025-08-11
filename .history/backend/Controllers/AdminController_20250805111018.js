@@ -2,8 +2,6 @@ const User = require('../Models/User');
 const Admission = require('../Models/Admission');
 const bcrypt = require('bcrypt');
 const Circular = require('../Models/Circular');
-const fs = require('fs');
-const path = require('path');
 
 // Get all admission forms
 const getAllAdmissions = async (req, res) => {
@@ -75,51 +73,30 @@ const updateAdminCredentials = async (req, res) => {
   }
 };
 
-
-
+// Add circular
 const addCircular = async (req, res) => {
   try {
-    const { title, course, semester } = req.body;
+    const { title } = req.body;
 
     console.log('Received request:', req.body, req.file);
 
-    // Validate title
     if (!title) {
       return res.status(400).json({
-        success: false,
-        message: 'Title is required'
-      });
+         success: false,
+          message: 'Title is required'
+         });
     }
 
-    // Validate course
-    if (!course || !['MCA', 'MBA', 'MTech'].includes(course)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid course is required (MCA, MBA, MTech)'
-      });
-    }
-
-    // Validate semester
-    if (!semester || semester < 1 || semester > 4) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid semester is required (1 to 4)'
-      });
-    }
-
-    // Validate PDF
     if (!req.file) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: 'PDF file is required'
-      });
+         message: 'PDF file is required'
+         });
     }
 
     const circular = new Circular({
       title,
-      pdfPath: req.file.path.replace(/\\/g, '/'), // Normalize path separators
-      course,
-      semester
+      pdfPath: req.file.path
     });
 
     await circular.save();
@@ -131,107 +108,20 @@ const addCircular = async (req, res) => {
     });
   } catch (error) {
     console.error('Error uploading circular:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
-
-
 
 
 const getAllCirculars = async (req, res) => {
   try {
-    let query = {};
-
-    // Check if user is admin or student based on isAdmin field
-    if (!req.user.isAdmin) {
-      // Student sees only their course & semester circulars
-      const { course, semester } = req.user;
-      query.course = course;
-      query.semester = semester;
-    } else {
-      // Admin can pass filters via query params
-      if (req.query.course) query.course = req.query.course;
-      if (req.query.semester) query.semester = req.query.semester;
-    }
-
-    const circulars = await Circular.find(query).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      data: circulars
-    });
-
+    const circulars = await Circular.find().sort({ createdAt: -1 }); // Newest first
+    res.status(200).json({ success: true, data: circulars });
   } catch (error) {
     console.error('Error fetching circulars:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-
-// Get all circulars for admin dashboard
-const getAllCircularsForAdmin = async (req, res) => {
-  try {
-    let query = {};
-
-    // Admin can pass filters via query params
-    if (req.query.course) query.course = req.query.course;
-    if (req.query.semester) query.semester = req.query.semester;
-
-    const circulars = await Circular.find(query).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      data: circulars
-    });
-
-  } catch (error) {
-    console.error('Error fetching circulars for admin:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
-
-// Delete a circular (admin only)
-const deleteCircular = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const circular = await Circular.findById(id);
-    if (!circular) {
-      return res.status(404).json({ success: false, message: 'Circular not found' });
-    }
-
-    // Remove file from disk (best-effort)
-    if (circular.pdfPath) {
-      const absolutePath = path.isAbsolute(circular.pdfPath)
-        ? circular.pdfPath
-        : path.join(__dirname, '..', circular.pdfPath);
-      fs.unlink(absolutePath, (err) => {
-        if (err) {
-          console.warn('Failed to delete circular file:', err.message);
-        }
-      });
-    }
-
-    await Circular.findByIdAndDelete(id);
-
-    return res.status(200).json({ success: true, message: 'Circular deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting circular:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-};
-
-
-
-
 
 module.exports = {
   getAllAdmissions,
@@ -239,7 +129,5 @@ module.exports = {
   updateAdmissionStatus,
   updateAdminCredentials,
   addCircular,
-  getAllCirculars,
-  getAllCircularsForAdmin,
-  deleteCircular
+  getAllCirculars
 };

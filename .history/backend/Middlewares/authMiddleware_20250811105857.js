@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../Models/User");
+const User = require("../models/User");
 
 const verifyToken = async (req, res, next) => {
     const token = req.header("Authorization");
@@ -10,10 +10,9 @@ const verifyToken = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-        const userId = decoded.id || decoded._id;
 
         // Fetch full user details from DB
-        const user = await User.findById(userId).select("-password"); // exclude password
+        const user = await User.findById(decoded.id).select("-password"); // exclude password
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
