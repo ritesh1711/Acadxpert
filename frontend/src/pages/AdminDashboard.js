@@ -42,7 +42,6 @@ import FolderIcon from '@mui/icons-material/Folder';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
-import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 
 // Create axios instance with base URL
@@ -98,7 +97,6 @@ const AdminDashboard = () => {
   const [loadingCirculars, setLoadingCirculars] = useState(false);
   const [circularFilterCourse, setCircularFilterCourse] = useState('');
   const [circularFilterSemester, setCircularFilterSemester] = useState('');
-  const [deletingCircularId, setDeletingCircularId] = useState(null);
 
   useEffect(() => {
     fetchAdmissions();
@@ -141,29 +139,6 @@ const AdminDashboard = () => {
       setCirculars([]);
     } finally {
       setLoadingCirculars(false);
-    }
-  };
-
-  const handleDeleteCircular = async (id) => {
-    if (!window.confirm('Delete this circular? This action cannot be undone.')) return;
-    try {
-      setDeletingCircularId(id);
-      try {
-        await api.delete(`/admin/circulars/${id}`);
-      } catch (err) {
-        // Fallback alias path if some environments route differently
-        if (err?.response?.status === 404) {
-          await api.delete(`/admin/delete-circular/${id}`);
-        } else {
-          throw err;
-        }
-      }
-      setCirculars((prev) => prev.filter((c) => c._id !== id));
-    } catch (err) {
-      console.error('Error deleting circular:', err);
-      alert('Failed to delete circular');
-    } finally {
-      setDeletingCircularId(null);
     }
   };
 
@@ -462,8 +437,82 @@ const AdminDashboard = () => {
           </Grid>
         </Grid>
 
+        {/* Filters */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.3)',
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            alignItems="center"
+            sx={{
+              '& .MuiTextField-root, & .MuiFormControl-root': {
+                background: 'rgba(255,255,255,0.9)',
+                borderRadius: 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              },
+            }}
+          >
+            <TextField
+              label="Search by name or email"
+              variant="outlined"
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ minWidth: 200 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Course</InputLabel>
+              <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} label="Course">
+                <MenuItem value="">All Courses</MenuItem>
+                {COURSES.map((course) => (
+                  <MenuItem key={course} value={course}>
+                    {course}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Semester</InputLabel>
+              <Select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                label="Semester"
+              >
+                <MenuItem value="">All Semesters</MenuItem>
+                {SEMESTERS.map((sem) => (
+                  <MenuItem key={sem} value={sem}>
+                    Semester {sem}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button variant="outlined" onClick={() => {
+              setSearchQuery('');
+              setSelectedCourse('');
+              setSelectedSemester('');
+            }} size="small">
+              Clear Filters
+            </Button>
+          </Stack>
+        </Paper>
 
-                  {/* Admin Upload Circular Form */}
+        {/* Admin Upload Circular Form */}
         <Paper
           sx={{
             p: 3,
@@ -488,7 +537,7 @@ const AdminDashboard = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth size="small" sx={{ mb: 2, width: '200px'}}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Course</InputLabel>
                 <Select 
                   value={circularCourse} 
@@ -504,7 +553,7 @@ const AdminDashboard = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth size="small" sx={{ mb: 2, width: '200px'}}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Semester</InputLabel>
                 <Select 
                   value={circularSemester} 
@@ -520,22 +569,12 @@ const AdminDashboard = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                component="label"
-                size="small"
-              >
-                Choose File
-                <input
-                  hidden
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setCircularFile(e.target.files?.[0])}
-                />
-              </Button>
-              <span style={{ marginLeft: 12, fontSize: 13, color: '#555' }}>
-                {circularFile ? circularFile.name : 'No file chosen'}
-              </span>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setCircularFile(e.target.files?.[0])}
+                style={{ marginBottom: 16 }}
+              />
             </Grid>
           </Grid>
           {uploadError && (
@@ -556,9 +595,6 @@ const AdminDashboard = () => {
             {uploadingCircular ? 'Uploading...' : 'Upload'}
           </Button>
         </Paper>
-
-        
-        
 
         {/* Circular Management Section */}
         <Paper
@@ -658,31 +694,19 @@ const AdminDashboard = () => {
                         {new Date(circular.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<DownloadIcon />}
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = `${api.defaults.baseURL}/${circular.pdfPath}`;
-                              link.target = '_blank';
-                              link.click();
-                            }}
-                          >
-                            View PDF
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            startIcon={<DeleteIcon />}
-                            disabled={deletingCircularId === circular._id}
-                            onClick={() => handleDeleteCircular(circular._id)}
-                          >
-                            {deletingCircularId === circular._id ? 'Deleting...' : 'Delete'}
-                          </Button>
-                        </Stack>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = `${api.defaults.baseURL}/${circular.pdfPath}`;
+                            link.target = '_blank';
+                            link.click();
+                          }}
+                        >
+                          View PDF
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -695,82 +719,6 @@ const AdminDashboard = () => {
             </Typography>
           )}
         </Paper>
-
-          {/* Filters */}
-        <Paper
-          sx={{
-            p: 3,
-            mb: 3,
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-            borderRadius: 4,
-            border: '1px solid rgba(255,255,255,0.3)',
-          }}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            alignItems="center"
-            sx={{
-              '& .MuiTextField-root, & .MuiFormControl-root': {
-                background: 'rgba(255,255,255,0.9)',
-                borderRadius: 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              },
-            }}
-          >
-            <TextField
-              label="Search by name or email"
-              variant="outlined"
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: 200 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Course</InputLabel>
-              <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} label="Course">
-                <MenuItem value="">All Courses</MenuItem>
-                {COURSES.map((course) => (
-                  <MenuItem key={course} value={course}>
-                    {course}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Semester</InputLabel>
-              <Select
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-                label="Semester"
-              >
-                <MenuItem value="">All Semesters</MenuItem>
-                {SEMESTERS.map((sem) => (
-                  <MenuItem key={sem} value={sem}>
-                    Semester {sem}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Button variant="outlined" onClick={() => {
-              setSearchQuery('');
-              setSelectedCourse('');
-              setSelectedSemester('');
-            }} size="small">
-              Clear Filters
-            </Button>
-          </Stack>
-        </Paper>
-
 
         {/* Admissions Table */}
         <TableContainer
