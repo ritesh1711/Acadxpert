@@ -145,20 +145,9 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Remember me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={loginInfo.rememberMe}
-                  onChange={handleChange}
-                  className="mr-2 accent-blue-500"
-                />
-                Remember Me
-              </label>
+             
                
-            </div>
+            
 
             {/* Button */}
             <button

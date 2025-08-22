@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { FaLock } from "react-icons/fa";  
 
 export default function AdminLogin() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Check if already logged in as admin
   useEffect(() => {
     const token = localStorage.getItem("token");
     const isAdmin = localStorage.getItem("isAdmin") === "true";
-    
     if (token && isAdmin) {
       navigate("/admin/dashboard");
     }
@@ -23,10 +19,7 @@ export default function AdminLogin() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -41,7 +34,6 @@ export default function AdminLogin() {
       );
 
       if (response.data.success) {
-        // Check if user is admin
         if (response.data.isAdmin) {
           localStorage.setItem("token", response.data.jwtToken);
           localStorage.setItem("email", response.data.email);
@@ -63,75 +55,70 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Login
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Login with your admin credentials
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 px-4">
+      <div className="bg-white shadow-lg rounded-2xl p-8 max-w-md w-full">
+         
+        <div className="flex items-center justify-center mb-4">
+          <FaLock className="text-blue-600 text-3xl mr-2" />
+          <h2 className="text-3xl font-bold text-gray-800">Admin Login</h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
+
+        <p className="text-center text-gray-500 mb-6">
+          Sign in with your admin credentials
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+              placeholder="admin@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+              placeholder="Enter your password"
+            />
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <p className="text-red-500 text-sm text-center">{error}</p>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-70"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </form>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-center text-sm text-gray-600">
-            <Link to="/login" className="text-blue-500 hover:underline">
-              Return to student login
-            </Link>
-          </p>
+
+         
+        <div className="mt-6 border-t border-gray-200 pt-4 text-center">
+          <p className="text-sm text-gray-600 mb-2">Not an admin?</p>
+          <Link to="/login" className="text-sm font-medium text-blue-600 hover:underline">
+            Return to student login
+          </Link>
         </div>
       </div>
     </div>
   );
-} 
+}
