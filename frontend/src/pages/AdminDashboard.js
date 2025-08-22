@@ -147,12 +147,9 @@ const AdminDashboard = () => {
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((a) => {
-        const nameText = (a.nameEnglish || a.userId?.name || '').toLowerCase();
-        const emailText = (a.email || a.userId?.email || '').toLowerCase();
-        const rollText = (a.rollNo || '').toLowerCase();
-        return nameText.includes(query) || emailText.includes(query) || rollText.includes(query);
-      });
+      filtered = filtered.filter(
+        (a) => a.name?.toLowerCase().includes(query) || a.email?.toLowerCase().includes(query)
+      );
     }
     if (selectedCourse) filtered = filtered.filter((a) => a.course === selectedCourse);
     if (selectedSemester) filtered = filtered.filter((a) => a.semester === selectedSemester);
@@ -740,7 +737,6 @@ const AdminDashboard = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Roll No</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Course</TableCell>
