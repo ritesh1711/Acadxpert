@@ -12,7 +12,12 @@ const initAdmin = async () => {
     // Check if admin already exists
     const existingAdmin = await User.findOne({ email: 'admin123@gmail.com' });
     if (existingAdmin) {
-      console.log('Admin account already exists');
+      // Ensure admin flags and defaults are present
+      if (!existingAdmin.isAdmin) existingAdmin.isAdmin = true;
+      if (!existingAdmin.course) existingAdmin.course = 'MCA';
+      if (!existingAdmin.semester) existingAdmin.semester = 1;
+      await existingAdmin.save();
+      console.log('Admin account ensured/updated');
       await mongoose.disconnect();
       return;
     }
@@ -23,7 +28,9 @@ const initAdmin = async () => {
       name: 'Admin',
       email: 'admin123@gmail.com',
       password: hashedPassword,
-      isAdmin: true
+      isAdmin: true,
+      course: 'MCA',
+      semester: 1
     });
 
     await admin.save();

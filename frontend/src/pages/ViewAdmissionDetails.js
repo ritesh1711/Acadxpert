@@ -169,12 +169,18 @@ export default function ViewAdmissionDetails() {
           </span>
         </div>
         
-        {/* Application Number */}
+        {/* Application Number and Roll No */}
         <div className="p-4 sm:p-6 border-b">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
               <span className="text-gray-500 text-sm">Application Number</span>
               <h3 className="text-lg sm:text-xl font-bold text-gray-800">{admissionData.applicationNo}</h3>
+              {admissionData.rollNo && (
+                <div className="mt-2">
+                  <span className="text-gray-500 text-sm">Roll Number</span>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-800">{admissionData.rollNo}</h3>
+                </div>
+              )}
             </div>
             <div className="mt-2 sm:mt-0">
               <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">

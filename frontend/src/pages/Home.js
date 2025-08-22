@@ -22,7 +22,7 @@ export default function Home() {
             }
 
             try {
-                const response = await fetch("https://acadxpert-main.onrender.com/auth/user", {
+                const response = await fetch("http://localhost:8000/auth/user", {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -65,7 +65,7 @@ export default function Home() {
             }
 
             try {
-                const response = await axios.get('https://acadxpert-main.onrender.com/admission/user/admission', {
+                const response = await axios.get('http://localhost:8000/admission/user/admission', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -152,8 +152,11 @@ export default function Home() {
                                     <h3 className="text-base sm:text-lg font-semibold text-green-800">
                                         Admission Application Submitted
                                     </h3>
-                                    <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-green-700">
+                                    <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-green-700 space-y-1">
                                         <p>Your admission application <span className="font-bold">(Application No: {submissionData.applicationNo})</span> has been submitted successfully.</p>
+                                        {submissionData.rollNo && (
+                                            <p>Assigned Roll No: <span className="font-bold uppercase">{submissionData.rollNo}</span></p>
+                                        )}
                                     </div>
                                     <div className="mt-2 sm:mt-3">
                                         <button

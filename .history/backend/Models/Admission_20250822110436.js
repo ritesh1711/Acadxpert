@@ -7,16 +7,13 @@ const admissionSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  rollNo: {
-    type: String
-  },
   nimcetRank: {
     type: String
   },
   catRank: {
     type: String
   },
-  gateRank: {
+    : {
     type: String
   },
   score: {
@@ -266,14 +263,5 @@ admissionSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
-
-// Unique indexes with sparse option for optional fields
-// Note: applicationNo already has unique: true at the path level
-admissionSchema.index({ email: 1 }, { unique: true, sparse: true });
-admissionSchema.index({ mobileNumber: 1 }, { unique: true, sparse: true });
-admissionSchema.index({ nimcetRank: 1 }, { unique: true, sparse: true });
-admissionSchema.index({ catRank: 1 }, { unique: true, sparse: true });
-admissionSchema.index({ gateRank: 1 }, { unique: true, sparse: true });
-admissionSchema.index({ rollNo: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Admission', admissionSchema); 

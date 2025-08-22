@@ -1,9 +1,7 @@
 const Admission = require('../Models/Admission');
-const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const RollCounter = require('../Models/RollCounter');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -113,30 +111,29 @@ exports.uploadMiddleware = upload.fields([
 ]);
 
 // Submit admission form with documents
-// Submit admission form with documents
 exports.submitAdmission = async (req, res) => {
   try {
     console.log('Admission submission received');
-
-    // ✅ Validate user authentication
+    
+    // Validate user authentication
     if (!req.user || !req.user._id) {
       console.error('User not authenticated');
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
-        message: 'User not authenticated'
+        message: 'User not authenticated' 
       });
     }
 
-    // ✅ Check uploaded files
+    // Check if any files were uploaded
     const files = req.files || {};
     console.log('Uploaded files:', Object.keys(files).length ? Object.keys(files).join(', ') : 'none');
-
+    
     const filePaths = {};
-
-    // ✅ Required files check
+    
+    // Check for required files
     const requiredFiles = ['photo', 'signature'];
     const missingFiles = requiredFiles.filter(file => !files[file]);
-
+    
     if (missingFiles.length > 0) {
       console.error('Missing required files:', missingFiles.join(', '));
       return res.status(400).json({
@@ -145,22 +142,22 @@ exports.submitAdmission = async (req, res) => {
         errors: missingFiles.map(file => `${file} is required`)
       });
     }
-
-    // ✅ Map file paths
+    
+    // Map file paths to their respective fields if files are provided
     Object.keys(files).forEach(fieldName => {
       const relativePath = files[fieldName][0].path.replace(/\\/g, '/');
       filePaths[fieldName] = relativePath;
       console.log(`File path for ${fieldName}: ${relativePath}`);
     });
 
-    // ✅ Generate application number if not provided
+    // Generate a unique application number if not provided
     let applicationNo = req.body.applicationNo;
     if (!applicationNo) {
       applicationNo = 'APP' + Date.now().toString().slice(-6);
       console.log(`Generated application number: ${applicationNo}`);
     }
 
-    // ✅ Parse documentStatus
+    // Process document status if provided
     let documentStatus = {};
     if (req.body.documentStatus) {
       try {
@@ -171,92 +168,39 @@ exports.submitAdmission = async (req, res) => {
       }
     }
 
-    // ✅ Unique field validation
-    const { nimcetRank, catRank, gateRank, email, mobileNumber } = req.body;
-    const uniqueConditions = [];
-    if (applicationNo) uniqueConditions.push({ applicationNo });
-    if (nimcetRank) uniqueConditions.push({ nimcetRank });
-    if (catRank) uniqueConditions.push({ catRank });
-    if (gateRank) uniqueConditions.push({ gateRank });
-    if (email) uniqueConditions.push({ email });
-    if (mobileNumber) uniqueConditions.push({ mobileNumber });
-
-    if (uniqueConditions.length > 0) {
-      const existingRecord = await Admission.findOne({ $or: uniqueConditions });
-      if (existingRecord) {
-        let conflictField = '';
-        if (existingRecord.applicationNo === applicationNo) conflictField = 'Application Number';
-        else if (existingRecord.nimcetRank === nimcetRank) conflictField = 'NIMCET Rank';
-        else if (existingRecord.catRank === catRank) conflictField = 'CAT Rank';
-        else if (existingRecord.gateRank === gateRank) conflictField = 'GATE Rank';
-        else if (existingRecord.email === email) conflictField = 'Email';
-        else if (existingRecord.mobileNumber === mobileNumber) conflictField = 'Mobile Number';
-
-        // ✅ Clean up uploaded files
-        Object.keys(files).forEach(fieldName => {
-          try {
-            const filePath = files[fieldName][0].path;
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-              console.log(`Cleaned up file: ${filePath}`);
-            }
-          } catch (cleanupError) {
-            console.error(`Error cleaning up file for ${fieldName}:`, cleanupError);
-          }
-        });
-
-        return res.status(400).json({
-          success: false,
-          message: `${conflictField} already exists for another applicant`
-        });
-      }
-    }
-
-    // ✅ Prepare admission data
+    // Create new admission record
     const admissionData = {
       ...req.body,
       ...filePaths,
       applicationNo,
       userId: req.user._id,
-      status: 'submitted',
+      status: 'submitted',  // Explicitly set status to submitted
       documentStatus: documentStatus
     };
-
+    
+    // Add undertaking text if provided
     if (req.body.undertakingText) {
       admissionData.undertakingText = req.body.undertakingText;
     }
-
+    
     console.log('Creating admission record with data:', JSON.stringify({
       applicationNo: admissionData.applicationNo,
       email: admissionData.email,
       nameEnglish: admissionData.nameEnglish,
       documentCount: Object.keys(filePaths).length
     }));
-
-    // ✅ Validate required fields
+    
+    // Validate required fields
     const admission = new Admission(admissionData);
     const validationError = admission.validateSync();
     if (validationError) {
+      // Extract validation error messages in a user-friendly format
       const errorMessages = Object.values(validationError.errors).map(err => {
         const fieldName = err.path.charAt(0).toUpperCase() + err.path.slice(1);
         return `${fieldName} ${err.message}`;
       });
-
+      
       console.error('Validation errors:', errorMessages);
-
-      // ✅ Clean up files on validation failure
-      Object.keys(files).forEach(fieldName => {
-        try {
-          const filePath = files[fieldName][0].path;
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`Cleaned up file: ${filePath}`);
-          }
-        } catch (cleanupError) {
-          console.error(`Error cleaning up file for ${fieldName}:`, cleanupError);
-        }
-      });
-
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -264,63 +208,8 @@ exports.submitAdmission = async (req, res) => {
       });
     }
 
-    // ✅ Generate and attach roll number atomically (per year-course-semester)
-    try {
-      const currentYear = new Date().getFullYear();
-      const course = (admissionData.course || 'MCA').toUpperCase();
-      const semester = Number(admissionData.semester || 1);
-      const counter = await RollCounter.findOneAndUpdate(
-        { year: currentYear, course, semester },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-
-      const seq = counter.seq || 1;
-      const seqPadded = String(seq).padStart(3, '0');
-      admissionData.rollNo = `CDAC${currentYear}${course}${String(semester).padStart(2, '0')}${seqPadded}`;
-      if (admission) {
-        admission.rollNo = admissionData.rollNo;
-      }
-    } catch (rollErr) {
-      console.error('Error generating roll number:', rollErr);
-      // continue without rollNo rather than failing submission
-    }
-
-    // ✅ Save admission record
-    let savedAdmission;
-    try {
-      savedAdmission = await admission.save();
-    } catch (dbError) {
-      if (dbError && dbError.code === 11000) {
-        const dupKey = Object.keys(dbError.keyValue || {})[0];
-        const fieldMap = {
-          applicationNo: 'Application Number',
-          nimcetRank: 'NIMCET Rank',
-          catRank: 'CAT Rank',
-          gateRank: 'GATE Rank',
-          email: 'Email',
-          mobileNumber: 'Mobile Number'
-        };
-
-        // Clean up uploaded files if duplicate occurs
-        if (req.files) {
-          Object.keys(req.files).forEach(fieldName => {
-            try {
-              const filePath = req.files[fieldName][0].path;
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-              }
-            } catch (_) {}
-          });
-        }
-
-        return res.status(400).json({
-          success: false,
-          message: `${fieldMap[dupKey] || dupKey} already exists for another applicant`
-        });
-      }
-      throw dbError;
-    }
+    // Save to database
+    const savedAdmission = await admission.save();
     console.log(`Admission record saved with ID: ${savedAdmission._id}`);
 
     res.status(201).json({
@@ -328,14 +217,13 @@ exports.submitAdmission = async (req, res) => {
       message: 'Admission form submitted successfully',
       data: {
         applicationNo: savedAdmission.applicationNo,
-        rollNo: savedAdmission.rollNo,
         id: savedAdmission._id
       }
     });
   } catch (error) {
     console.error('Error submitting admission form:', error);
-
-    // ✅ Clean up uploaded files on server error
+    
+    // Clean up uploaded files if there's an error
     if (req.files) {
       Object.keys(req.files).forEach(fieldName => {
         try {
@@ -350,51 +238,15 @@ exports.submitAdmission = async (req, res) => {
       });
     }
 
+    // Send detailed error response
     res.status(500).json({
       success: false,
       message: 'Error submitting admission form',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
-
-// Pre-check uniqueness for admission fields
-exports.precheckUnique = async (req, res) => {
-  try {
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
-      return res.status(200).json({ success: true, conflicts: {} });
-    }
-    const { applicationNo, nimcetRank, catRank, gateRank, email, mobileNumber } = req.query;
-
-    const conditions = [];
-    if (applicationNo) conditions.push({ applicationNo });
-    if (nimcetRank) conditions.push({ nimcetRank });
-    if (catRank) conditions.push({ catRank });
-    if (gateRank) conditions.push({ gateRank });
-    if (email) conditions.push({ email });
-    if (mobileNumber) conditions.push({ mobileNumber });
-
-    if (conditions.length === 0) {
-      return res.status(200).json({ success: true, conflicts: {} });
-    }
-
-    const existing = await Admission.findOne({ $or: conditions });
-    const conflicts = {};
-    if (existing) {
-      if (applicationNo && existing.applicationNo === applicationNo) conflicts.applicationNo = true;
-      if (nimcetRank && existing.nimcetRank === nimcetRank) conflicts.nimcetRank = true;
-      if (catRank && existing.catRank === catRank) conflicts.catRank = true;
-      if (gateRank && existing.gateRank === gateRank) conflicts.gateRank = true;
-      if (email && existing.email === email) conflicts.email = true;
-      if (mobileNumber && existing.mobileNumber === mobileNumber) conflicts.mobileNumber = true;
-    }
-
-    return res.status(200).json({ success: true, conflicts });
-  } catch (error) {
-    return res.status(200).json({ success: true, conflicts: {} });
-  }
-};
-
 
 // Get admission details by ID
 exports.getAdmissionById = async (req, res) => {

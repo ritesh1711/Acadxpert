@@ -1,9 +1,7 @@
 const Admission = require('../Models/Admission');
-const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const RollCounter = require('../Models/RollCounter');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -264,63 +262,8 @@ exports.submitAdmission = async (req, res) => {
       });
     }
 
-    // ✅ Generate and attach roll number atomically (per year-course-semester)
-    try {
-      const currentYear = new Date().getFullYear();
-      const course = (admissionData.course || 'MCA').toUpperCase();
-      const semester = Number(admissionData.semester || 1);
-      const counter = await RollCounter.findOneAndUpdate(
-        { year: currentYear, course, semester },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-
-      const seq = counter.seq || 1;
-      const seqPadded = String(seq).padStart(3, '0');
-      admissionData.rollNo = `CDAC${currentYear}${course}${String(semester).padStart(2, '0')}${seqPadded}`;
-      if (admission) {
-        admission.rollNo = admissionData.rollNo;
-      }
-    } catch (rollErr) {
-      console.error('Error generating roll number:', rollErr);
-      // continue without rollNo rather than failing submission
-    }
-
     // ✅ Save admission record
-    let savedAdmission;
-    try {
-      savedAdmission = await admission.save();
-    } catch (dbError) {
-      if (dbError && dbError.code === 11000) {
-        const dupKey = Object.keys(dbError.keyValue || {})[0];
-        const fieldMap = {
-          applicationNo: 'Application Number',
-          nimcetRank: 'NIMCET Rank',
-          catRank: 'CAT Rank',
-          gateRank: 'GATE Rank',
-          email: 'Email',
-          mobileNumber: 'Mobile Number'
-        };
-
-        // Clean up uploaded files if duplicate occurs
-        if (req.files) {
-          Object.keys(req.files).forEach(fieldName => {
-            try {
-              const filePath = req.files[fieldName][0].path;
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-              }
-            } catch (_) {}
-          });
-        }
-
-        return res.status(400).json({
-          success: false,
-          message: `${fieldMap[dupKey] || dupKey} already exists for another applicant`
-        });
-      }
-      throw dbError;
-    }
+    const savedAdmission = await admission.save();
     console.log(`Admission record saved with ID: ${savedAdmission._id}`);
 
     res.status(201).json({
@@ -328,7 +271,6 @@ exports.submitAdmission = async (req, res) => {
       message: 'Admission form submitted successfully',
       data: {
         applicationNo: savedAdmission.applicationNo,
-        rollNo: savedAdmission.rollNo,
         id: savedAdmission._id
       }
     });
@@ -355,43 +297,6 @@ exports.submitAdmission = async (req, res) => {
       message: 'Error submitting admission form',
       error: error.message
     });
-  }
-};
-
-// Pre-check uniqueness for admission fields
-exports.precheckUnique = async (req, res) => {
-  try {
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
-      return res.status(200).json({ success: true, conflicts: {} });
-    }
-    const { applicationNo, nimcetRank, catRank, gateRank, email, mobileNumber } = req.query;
-
-    const conditions = [];
-    if (applicationNo) conditions.push({ applicationNo });
-    if (nimcetRank) conditions.push({ nimcetRank });
-    if (catRank) conditions.push({ catRank });
-    if (gateRank) conditions.push({ gateRank });
-    if (email) conditions.push({ email });
-    if (mobileNumber) conditions.push({ mobileNumber });
-
-    if (conditions.length === 0) {
-      return res.status(200).json({ success: true, conflicts: {} });
-    }
-
-    const existing = await Admission.findOne({ $or: conditions });
-    const conflicts = {};
-    if (existing) {
-      if (applicationNo && existing.applicationNo === applicationNo) conflicts.applicationNo = true;
-      if (nimcetRank && existing.nimcetRank === nimcetRank) conflicts.nimcetRank = true;
-      if (catRank && existing.catRank === catRank) conflicts.catRank = true;
-      if (gateRank && existing.gateRank === gateRank) conflicts.gateRank = true;
-      if (email && existing.email === email) conflicts.email = true;
-      if (mobileNumber && existing.mobileNumber === mobileNumber) conflicts.mobileNumber = true;
-    }
-
-    return res.status(200).json({ success: true, conflicts });
-  } catch (error) {
-    return res.status(200).json({ success: true, conflicts: {} });
   }
 };
 

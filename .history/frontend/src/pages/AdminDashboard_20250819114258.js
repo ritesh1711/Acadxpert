@@ -147,12 +147,9 @@ const AdminDashboard = () => {
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((a) => {
-        const nameText = (a.nameEnglish || a.userId?.name || '').toLowerCase();
-        const emailText = (a.email || a.userId?.email || '').toLowerCase();
-        const rollText = (a.rollNo || '').toLowerCase();
-        return nameText.includes(query) || emailText.includes(query) || rollText.includes(query);
-      });
+      filtered = filtered.filter(
+        (a) => a.name?.toLowerCase().includes(query) || a.email?.toLowerCase().includes(query)
+      );
     }
     if (selectedCourse) filtered = filtered.filter((a) => a.course === selectedCourse);
     if (selectedSemester) filtered = filtered.filter((a) => a.semester === selectedSemester);
@@ -540,7 +537,7 @@ const AdminDashboard = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ mb: 2, minWidth: '200px' }}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Course</InputLabel>
                 <Select 
                   value={circularCourse} 
@@ -556,7 +553,7 @@ const AdminDashboard = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
-            <FormControl fullWidth sx={{ mb: 2, minWidth: '200px' }}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Semester</InputLabel>
                 <Select 
                   value={circularSemester} 
@@ -740,7 +737,6 @@ const AdminDashboard = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Roll No</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Course</TableCell>
@@ -760,9 +756,8 @@ const AdminDashboard = () => {
               ) : filteredAdmissions.length > 0 ? (
                 filteredAdmissions.map((admission) => (
                   <TableRow key={admission._id} hover>
-                    <TableCell>{admission.rollNo || '—'}</TableCell>
-                    <TableCell>{admission.nameEnglish || admission.userId?.name || '—'}</TableCell>
-                    <TableCell>{admission.email || admission.userId?.email || '—'}</TableCell>
+                    <TableCell>{admission.name}</TableCell>
+                    <TableCell>{admission.email}</TableCell>
                     <TableCell>{admission.course}</TableCell>
                     <TableCell>Semester {admission.semester}</TableCell>
                     <TableCell align="right">

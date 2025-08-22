@@ -56,15 +56,6 @@ export default function AdmissionForm() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [conflicts, setConflicts] = useState({
-    applicationNo: false,
-    nimcetRank: false,
-    catRank: false,
-    gateRank: false,
-    email: false,
-    mobileNumber: false
-  });
-  const [showConflictModal, setShowConflictModal] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [submissionData, setSubmissionData] = useState(null);
   const navigate = useNavigate();
@@ -113,64 +104,6 @@ export default function AdmissionForm() {
     checkExistingSubmission();
   }, [navigate]);
 
-  // Debounced uniqueness pre-check
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const params = {};
-        if (formData.applicationNo) params.applicationNo = formData.applicationNo.trim();
-        if (formData.email) params.email = formData.email.trim().toLowerCase();
-        if (formData.mobileNumber) params.mobileNumber = formData.mobileNumber.trim();
-
-        const rankFieldName = getRankFieldName();
-        const rankValue = getRankValue();
-        if (rankValue) params[rankFieldName] = rankValue.trim();
-
-        if (Object.keys(params).length === 0) {
-          setConflicts({
-            applicationNo: false,
-            nimcetRank: false,
-            catRank: false,
-            gateRank: false,
-            email: false,
-            mobileNumber: false
-          });
-          return;
-        }
-
-        const res = await axios.get('http://localhost:8000/admission/precheck-unique', {
-          params,
-          signal: controller.signal
-        });
-
-        if (res.data && res.data.success) {
-          const c = res.data.conflicts || {};
-          setConflicts(prev => ({
-            ...prev,
-            applicationNo: !!c.applicationNo,
-            nimcetRank: !!c.nimcetRank,
-            catRank: !!c.catRank,
-            gateRank: !!c.gateRank,
-            email: !!c.email,
-            mobileNumber: !!c.mobileNumber
-          }));
-        }
-      } catch (e) {
-        // Ignore aborts and silent failures
-      }
-    }, 300);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.applicationNo, formData.email, formData.mobileNumber, formData.nimcetRank, formData.catRank, formData.gateRank, formData.course]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -192,19 +125,75 @@ export default function AdmissionForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!agree) {
-      alert("Please agree to the declaration to proceed.");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!agree) {
+    alert("Please agree to the declaration to proceed.");
+    return;
+  }
+
+  // Validate required fields
+  const requiredFields = [
+    { field: 'applicationNo', label: 'Application Number' },
+    { field: 'nameEnglish', label: 'Name (English)' },
+    { field: 'email', label: 'Email ID' },
+    { field: 'mobileNumber', label: 'Mobile Number' }
+  ];
+
+  let missingFields = [];
+  requiredFields.forEach(({ field, label }) => {
+    if (!formData[field]) {
+      missingFields.push(label);
+    }
+  });
+
+  if (missingFields.length > 0) {
+    setError(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError("");
+
+    // ✅ Check for duplicates via API
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("You must be logged in to submit the form");
       return;
     }
-    // Block submit if conflicts present
-    const hasConflict = Object.values(conflicts).some(Boolean);
-    if (hasConflict) {
-      setError("Some fields are already used by another applicant.");
-      setShowConflictModal(true);
+
+    const checkPayload = {
+      applicationNo: formData.applicationNo,
+      email: formData.email,
+      mobileNumber: formData.mobileNumber,
+      nimcetRank: formData.nimcetRank || null,
+      catRank: formData.catRank || null,
+      gateRank: formData.gateRank || null
+    };
+
+    const duplicateRes = await axios.post(
+      "http://localhost:8000/admission/check-duplicate",
+      checkPayload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (duplicateRes.data.duplicate) {
+      setError(duplicateRes.data.message || "Duplicate entry found. Please check your details.");
       return;
     }
+
+    // ✅ If no duplicate → Save form data and go to next page
+    localStorage.setItem("admissionFormData", JSON.stringify(formData));
+    navigate("/document-upload");
+  } catch (err) {
+    console.error("Error submitting form:", err);
+    setError(err.response?.data?.message || "An error occurred while submitting the form");
+  } finally {
+    setLoading(false);
+  }
+};
+
     
     // Validate required fields
     const requiredFields = [
@@ -448,23 +437,17 @@ export default function AdmissionForm() {
               value={formData.applicationNo}
               onChange={handleChange}
               placeholder="Application No" 
-              className={`w-full border rounded px-3 py-2 text-sm sm:text-base ${conflicts.applicationNo ? 'border-red-500 focus:border-red-500' : ''}`} 
+              className="w-full border rounded px-3 py-2 text-sm sm:text-base" 
               required
             />
-            {conflicts.applicationNo && (
-              <div className="sm:col-span-3 -mt-3 text-xs text-red-600">Application Number already exists</div>
-            )}
             <input 
               type="text" 
               name={getRankFieldName()}
               value={getRankValue()}
               onChange={handleChange}
               placeholder={getRankFieldPlaceholder()} 
-              className={`w-full border rounded px-3 py-2 text-sm sm:text-base ${(conflicts.nimcetRank || conflicts.catRank || conflicts.gateRank) ? 'border-red-500 focus:border-red-500' : ''}`} 
+              className="w-full border rounded px-3 py-2 text-sm sm:text-base" 
             />
-            {(conflicts.nimcetRank || conflicts.catRank || conflicts.gateRank) && (
-              <div className="sm:col-span-3 -mt-3 text-xs text-red-600">Entered rank already exists</div>
-            )}
             <input 
               type="text" 
               name="score"
@@ -500,24 +483,18 @@ export default function AdmissionForm() {
               value={formData.email}
               onChange={handleChange}
               placeholder="Email ID" 
-              className={`w-full border rounded px-3 py-2 text-sm sm:text-base ${conflicts.email ? 'border-red-500 focus:border-red-500' : ''}`} 
+              className="w-full border rounded px-3 py-2 text-sm sm:text-base" 
               required
             />
-            {conflicts.email && (
-              <div className="sm:col-span-2 -mt-3 text-xs text-red-600">Email already exists</div>
-            )}
             <input 
               type="tel" 
               name="mobileNumber"
               value={formData.mobileNumber}
               onChange={handleChange}
               placeholder="Mobile Number" 
-              className={`w-full border rounded px-3 py-2 text-sm sm:text-base ${conflicts.mobileNumber ? 'border-red-500 focus:border-red-500' : ''}`} 
+              className="w-full border rounded px-3 py-2 text-sm sm:text-base" 
               required
             />
-            {conflicts.mobileNumber && (
-              <div className="sm:col-span-2 -mt-3 text-xs text-red-600">Mobile Number already exists</div>
-            )}
           </div>
 
           <h3 className="text-md sm:text-lg font-bold text-gray-700">2. Mother's Information</h3>
@@ -743,29 +720,6 @@ export default function AdmissionForm() {
             </button>
           </div>
         </form>
-
-        {/* Conflict Modal */}
-        {showConflictModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-40" onClick={() => setShowConflictModal(false)}></div>
-            <div className="relative bg-white w-11/12 sm:w-[480px] rounded-lg shadow-xl p-6">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Duplicate entries detected</h4>
-              <p className="text-sm text-gray-600 mb-4">The following fields are already used by another applicant:</p>
-              <ul className="list-disc list-inside text-sm text-red-700 space-y-1 mb-4">
-                {conflicts.applicationNo && <li>Application Number</li>}
-                {(conflicts.nimcetRank || conflicts.catRank || conflicts.gateRank) && (
-                  <li>{getRankFieldPlaceholder()}</li>
-                )}
-                {conflicts.email && <li>Email</li>}
-                {conflicts.mobileNumber && <li>Mobile Number</li>}
-              </ul>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setShowConflictModal(false)} className="px-4 py-2 rounded border text-sm">Close</button>
-                <button onClick={() => setShowConflictModal(false)} className="px-4 py-2 rounded bg-blue-600 text-white text-sm">Okay</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
