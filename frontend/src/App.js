@@ -15,6 +15,7 @@ import AdminSettings from './pages/AdminSettings';
 import UpdatePendingDocuments from './pages/UpdatePendingDocuments';
 import ViewAdmissionDetails from './pages/ViewAdmissionDetails';
 import Circular from './pages/Circular';
+import AdminCirculars from './pages/AdminCirculars';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -50,6 +51,7 @@ function App() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminRoute element={<AdminDashboard />} />} />
         <Route path="/admin/settings" element={<AdminRoute element={<AdminSettings />} />} />
+        <Route path="/admin/circulars" element={<AdminRoute element={<AdminCirculars />} />} />
       </Routes>
     </div>
   );
