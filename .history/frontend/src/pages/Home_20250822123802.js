@@ -113,7 +113,12 @@ export default function Home() {
                             <span className="text-white text-sm sm:text-base font-semibold">
                                 {user.name} 👤
                             </span>
-                            
+                            <button
+                                onClick={() => navigate("/StudentProfile")}
+                                className="bg-white text-blue-500 px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm rounded-md font-semibold shadow-md hover:bg-gray-200 transition"
+                            >
+                                Student Profile
+                            </button>
                             <button
                                 onClick={handleLogout}
                                 className="bg-red-500 text-white px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm rounded-md font-semibold shadow-md hover:bg-red-600 transition"

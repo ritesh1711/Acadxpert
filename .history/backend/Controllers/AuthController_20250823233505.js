@@ -70,7 +70,7 @@ const login = async (req, res) => {
                 message: "login successfully",
                 success: true,
                 jwtToken,
-                username: user.username,
+                email,
                 name: user.name,
                 isAdmin: user.isAdmin,
                 course: user.course,

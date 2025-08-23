@@ -7,7 +7,7 @@ export default function AdminSettings() {
     currentPassword: "",
     newPassword: "",
     confirmNewPassword: "",
-    newUsername: ""
+    newEmail: ""
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -15,9 +15,10 @@ export default function AdminSettings() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if user is admin
     const token = localStorage.getItem("token");
     const isAdmin = localStorage.getItem("isAdmin") === "true";
-
+    
     if (!token || !isAdmin) {
       navigate("/admin/login");
     }
@@ -25,7 +26,7 @@ export default function AdminSettings() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value
     }));
@@ -45,8 +46,8 @@ export default function AdminSettings() {
     }
 
     // Validate at least one field is being updated
-    if (!formData.newPassword && !formData.newUsername) {
-      setError("Please provide a new password or username to update");
+    if (!formData.newPassword && !formData.newEmail) {
+      setError("Please provide a new password or email to update");
       setLoading(false);
       return;
     }
@@ -60,21 +61,22 @@ export default function AdminSettings() {
 
     try {
       const token = localStorage.getItem("token");
-
+      
+      // Create payload with only needed fields
       const payload = {
         currentPassword: formData.currentPassword
       };
-
+      
       if (formData.newPassword) {
         payload.newPassword = formData.newPassword;
       }
-
-      if (formData.newUsername) {
-        payload.newUsername = formData.newUsername;
+      
+      if (formData.newEmail) {
+        payload.newEmail = formData.newEmail;
       }
-
+      
       const response = await axios.post(
-        "http://localhost:8000/admin/update-credentials",
+        "https://acadxpert-main.onrender.com/admin/update-credentials",
         payload,
         {
           headers: {
@@ -82,18 +84,19 @@ export default function AdminSettings() {
           }
         }
       );
-
+      
       if (response.data.success) {
         setSuccess("Admin credentials updated successfully");
         setFormData({
           currentPassword: "",
           newPassword: "",
           confirmNewPassword: "",
-          newUsername: ""
+          newEmail: ""
         });
-
-        if (formData.newUsername) {
-          localStorage.setItem("username", formData.newUsername);
+        
+        // Update email in localStorage if it was changed
+        if (formData.newEmail) {
+          localStorage.setItem("email", formData.newEmail);
         }
       }
     } catch (err) {
@@ -122,7 +125,7 @@ export default function AdminSettings() {
               <button
                 onClick={() => {
                   localStorage.removeItem("token");
-                  localStorage.removeItem("username");
+                  localStorage.removeItem("email");
                   localStorage.removeItem("name");
                   localStorage.removeItem("isAdmin");
                   navigate("/admin/login");
@@ -139,34 +142,45 @@ export default function AdminSettings() {
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white shadow sm:rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              Change Admin Credentials
-            </h2>
-
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Change Admin Credentials</h2>
+            
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                <p className="text-sm text-red-700">{error}</p>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
               </div>
             )}
-
+            
             {success && (
               <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
-                <p className="text-sm text-green-700">{success}</p>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-green-700">{success}</p>
+                  </div>
+                </div>
               </div>
             )}
-
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <p className="mb-4 text-sm text-gray-500">
-                  Current admin username: {localStorage.getItem("username")}
-                </p>
+                <p className="mb-4 text-sm text-gray-500">Current admin email: {localStorage.getItem("email")}</p>
               </div>
-
+              
               <div>
-                <label
-                  htmlFor="currentPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
                   Current Password <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -179,13 +193,10 @@ export default function AdminSettings() {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label
-                    htmlFor="newPassword"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
                     New Password
                   </label>
                   <input
@@ -197,12 +208,9 @@ export default function AdminSettings() {
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-
+                
                 <div>
-                  <label
-                    htmlFor="confirmNewPassword"
-                    className="block text-sm font-medium text-gray-700"
-                  >
+                  <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700">
                     Confirm New Password
                   </label>
                   <input
@@ -215,24 +223,21 @@ export default function AdminSettings() {
                   />
                 </div>
               </div>
-
+              
               <div>
-                <label
-                  htmlFor="newUsername"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  New Username
+                <label htmlFor="newEmail" className="block text-sm font-medium text-gray-700">
+                  New Email
                 </label>
                 <input
-                  id="newUsername"
-                  name="newUsername"
-                  type="text"
-                  value={formData.newUsername}
+                  id="newEmail"
+                  name="newEmail"
+                  type="email"
+                  value={formData.newEmail}
                   onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-
+              
               <div className="pt-4">
                 <button
                   type="submit"
@@ -243,13 +248,21 @@ export default function AdminSettings() {
                 </button>
               </div>
             </form>
-
+            
             <div className="mt-6">
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                <p className="text-sm text-yellow-700">
-                  <strong>Important:</strong> If you update your username or password,
-                  you will need to use the new credentials for future logins.
-                </p>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      <strong>Important:</strong> If you update your email or password, you will need to use the new credentials for future logins.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -257,4 +270,4 @@ export default function AdminSettings() {
       </div>
     </div>
   );
-}
+} 

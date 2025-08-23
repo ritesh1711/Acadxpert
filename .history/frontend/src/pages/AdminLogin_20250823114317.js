@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { FaLock } from "react-icons/fa";
+import { FaLock } from "react-icons/fa";  
 
 export default function AdminLogin() {
-  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function AdminLogin() {
       if (response.data.success) {
         if (response.data.isAdmin) {
           localStorage.setItem("token", response.data.jwtToken);
-          localStorage.setItem("username", response.data.username);
+          localStorage.setItem("email", response.data.email);
           localStorage.setItem("name", response.data.name);
           localStorage.setItem("isAdmin", response.data.isAdmin);
           navigate("/admin/dashboard");
@@ -57,6 +57,7 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 px-4">
       <div className="bg-white shadow-lg rounded-2xl p-8 max-w-md w-full">
+         
         <div className="flex items-center justify-center mb-4">
           <FaLock className="text-blue-600 text-3xl mr-2" />
           <h2 className="text-3xl font-bold text-gray-800">Admin Login</h2>
@@ -69,16 +70,16 @@ export default function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
+              Email Address
             </label>
             <input
-              name="username"
-              type="text"
-              value={formData.username}
+              name="email"
+              type="email"
+              value={formData.email}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
-              placeholder="Enter your username"
+              placeholder="admin@example.com"
             />
           </div>
 
@@ -97,7 +98,9 @@ export default function AdminLogin() {
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
 
           <button
             type="submit"
@@ -108,12 +111,10 @@ export default function AdminLogin() {
           </button>
         </form>
 
+         
         <div className="mt-6 border-t border-gray-200 pt-4 text-center">
           <p className="text-sm text-gray-600 mb-2">Not an admin?</p>
-          <Link
-            to="/login"
-            className="text-sm font-medium text-blue-600 hover:underline"
-          >
+          <Link to="/login" className="text-sm font-medium text-blue-600 hover:underline">
             Return to student login
           </Link>
         </div>

@@ -40,8 +40,8 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { username, password } = req.body;
-        const user = await UserModel.findOne({ username });
-        const errmsg= "Username or password is wrong ... Try again...";
+        const user = await UserModel.findOne({ email });
+        const errmsg= "auth failed email or password is wrong ";
         if (!user) {
             return res.status(403)
                 .json({ message: errmsg, success: false });
@@ -55,7 +55,7 @@ const login = async (req, res) => {
 
         const jwtToken = jwt.sign(
             {
-                username: user.username,
+                email: user.email, 
                 _id: user.id,
                 isAdmin: user.isAdmin,
                 course: user.course,
@@ -70,7 +70,7 @@ const login = async (req, res) => {
                 message: "login successfully",
                 success: true,
                 jwtToken,
-                username: user.username,
+                email,
                 name: user.name,
                 isAdmin: user.isAdmin,
                 course: user.course,

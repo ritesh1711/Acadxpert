@@ -55,7 +55,7 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role }),
 =======
-      const url = "https://acadxpert-main.onrender.com/auth/signup"; 
+      const url = "http://localhost:8000/auth/signup"; 
       const response = await fetch(url, {
         method: "POST",
         headers: {

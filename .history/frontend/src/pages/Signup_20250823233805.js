@@ -7,7 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 export default function Signup() {
   const [signupInfo, setSignupInfo] = useState({
     name: "",
-    email: "",
+    username: "",
     password: "",
     course: "MCA",
     semester: "1",
@@ -26,9 +26,9 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    const { name, email, password, course, semester } = signupInfo;
+    const { name, username, password, course, semester } = signupInfo;
 
-    if (!name || !email || !password || !course || !semester) {
+    if (!name || !username || !password || !course || !semester) {
       toast.error("All fields are required");
       return;
     }
@@ -45,7 +45,7 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          email,
+          username,
           password,
           course,
           semester: parseInt(semester, 10),
@@ -112,19 +112,19 @@ export default function Signup() {
               </div>
             </div>
 
-            {/* Email */}
+            {/* username */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                Email Address
+                Username 
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
                 <input
-                  type="email"
-                  name="email"
+                  type="username"
+                  name="username"
                   onChange={handleChange}
-                  value={signupInfo.email}
-                  placeholder="example@email.com"
+                  value={signupInfo.username}
+                  placeholder="example@username.com"
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                 />

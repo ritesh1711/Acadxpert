@@ -55,7 +55,7 @@ const login = async (req, res) => {
 
         const jwtToken = jwt.sign(
             {
-                username: user.username,
+                user: user.email, 
                 _id: user.id,
                 isAdmin: user.isAdmin,
                 course: user.course,
@@ -70,7 +70,7 @@ const login = async (req, res) => {
                 message: "login successfully",
                 success: true,
                 jwtToken,
-                username: user.username,
+                email,
                 name: user.name,
                 isAdmin: user.isAdmin,
                 course: user.course,
