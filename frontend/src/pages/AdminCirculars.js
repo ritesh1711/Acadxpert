@@ -26,7 +26,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import axios from 'axios';
 
-const COURSES = ['MCA', 'MBA', 'MTech'];
+const COURSES = ['MCA', 'MBA', 'MTech', 'All Courses'];
 const SEMESTERS = [1, 2, 3, 4];
 
 const api = axios.create({
@@ -210,7 +210,7 @@ const AdminCirculars = () => {
                           link.href = `${api.defaults.baseURL}/${circular.pdfPath}`;
                           link.target = '_blank';
                           link.click();
-                        }}>View PDF</Button>
+                        }}>View Circular</Button>
                       </TableCell>
                     </TableRow>
                   ))}

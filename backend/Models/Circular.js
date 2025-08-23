@@ -6,7 +6,7 @@ const circularSchema = new mongoose.Schema({
   course: {
     type: String,
     required: true,
-    enum: ['MCA', 'MBA', 'MTech']  // Match with User schema
+    enum: ['MCA', 'MBA', 'MTech', 'All Courses']  // Added "All Courses" option
   },
   semester: {
     type: Number,

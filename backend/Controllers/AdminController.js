@@ -92,10 +92,10 @@ const addCircular = async (req, res) => {
     }
 
     // Validate course
-    if (!course || !['MCA', 'MBA', 'MTech'].includes(course)) {
+    if (!course || !['MCA', 'MBA', 'MTech', 'All Courses'].includes(course)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid course is required (MCA, MBA, MTech)'
+        message: 'Valid course is required (MCA, MBA, MTech, All Courses)'
       });
     }
 
@@ -148,10 +148,12 @@ const getAllCirculars = async (req, res) => {
 
     // Check if user is admin or student based on isAdmin field
     if (!req.user.isAdmin) {
-      // Student sees only their course & semester circulars
+      // Student sees their course & semester circulars + "All Courses" circulars
       const { course, semester } = req.user;
-      query.course = course;
-      query.semester = semester;
+      query.$or = [
+        { course: course, semester: semester },
+        { course: 'All Courses', semester: semester }
+      ];
     } else {
       // Admin can pass filters via query params
       if (req.query.course) query.course = req.query.course;

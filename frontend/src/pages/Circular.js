@@ -73,7 +73,7 @@ const Circulars = () => {
                 rel="noopener noreferrer"
                 className="text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-md text-sm transition"
               >
-                View PDF
+                View Circular
               </a>
             </li>
           ))}
