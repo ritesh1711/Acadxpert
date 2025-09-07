@@ -4,18 +4,20 @@ const verifyAdmin = require('../Middlewares/adminMiddleware');
 const multer = require('multer');
 const { getAllCirculars } = require('../Controllers/AdminController');  
 const path = require('path');
-const authMiddleware = require('../Middlewares/authMiddleware');
+const authMiddleware = require('../Middlewares/authMiddleware'); // Adjust path as needed
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/circulars');   
   },
   filename: (req, file, cb) => {
+    
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
 
 const fileFilter = (req, file, cb) => {
+  // Accept only PDFs
   if (file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
@@ -32,11 +34,8 @@ const {
   updateAdminCredentials,
   addCircular,
   getAllCircularsForAdmin,
-  deleteCircular,
-  updateStudentAdmission   // ✅ added
+  deleteCircular
 } = require('../Controllers/AdminController');
-
-const { uploadMiddleware } = require('../Controllers/AdmissionController');
 
 // Get all admissions
 router.get('/admissions', verifyAdmin, getAllAdmissions);
@@ -47,17 +46,16 @@ router.get('/admissions/:id', verifyAdmin, getAdmissionById);
 // Update admission status
 router.patch('/admissions/:id/status', verifyAdmin, updateAdmissionStatus);
 
-// ✅ Update full student admission (details + docs)
-router.put('/admissions/:id', verifyAdmin, uploadMiddleware, updateStudentAdmission);
-
 // Update admin credentials
 router.post('/update-credentials', verifyAdmin, updateAdminCredentials);
 
-// Circulars
 router.post('/circulars', verifyAdmin, upload.single('pdf'), addCircular);
-router.get('/getcirculars', authMiddleware, getAllCirculars);
+
+router.get('/getcirculars', authMiddleware ,getAllCirculars);
 router.get('/circulars', verifyAdmin, getAllCircularsForAdmin); 
 router.delete('/circulars/:id', verifyAdmin, deleteCircular);
+// Alias route to avoid any client caching/method issues
 router.delete('/delete-circular/:id', verifyAdmin, deleteCircular);
 
-module.exports = router;
+
+module.exports = router; 

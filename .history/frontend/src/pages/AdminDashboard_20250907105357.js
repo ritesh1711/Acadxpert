@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -42,9 +42,6 @@ import FolderIcon from '@mui/icons-material/Folder';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Cancel';
 import axios from 'axios';
 
 // Create axios instance with base URL
@@ -76,25 +73,39 @@ const AdminDashboard = () => {
   // Dialog & UI states
   const [selectedAdmission, setSelectedAdmission] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openCredentialsDialog, setOpenCredentialsDialog] = useState(false);
   const [credentials, setCredentials] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [stats, setStats] = useState({ total: 0 });
   const [activeTab, setActiveTab] = useState('details');
-  const [editFormData, setEditFormData] = useState({});
-  const [editFiles, setEditFiles] = useState({});
-  const [editLoading, setEditLoading] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
 
-  // Circulars moved to dedicated page `/admin/circulars`
+  // Circular upload states
+  const [circularTitle, setCircularTitle] = useState('');
+  const [circularFile, setCircularFile] = useState(null);
+  const [circularCourse, setCircularCourse] = useState('');
+  const [circularSemester, setCircularSemester] = useState('');
+  const [uploadingCircular, setUploadingCircular] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
+
+  // Circular management states
+  const [circulars, setCirculars] = useState([]);
+  const [loadingCirculars, setLoadingCirculars] = useState(false);
+  const [circularFilterCourse, setCircularFilterCourse] = useState('');
+  const [circularFilterSemester, setCircularFilterSemester] = useState('');
 
   useEffect(() => {
     fetchAdmissions();
+    fetchCirculars();
   }, []);
+
+  useEffect(() => {
+    filterAdmissions();
+  }, [searchQuery, selectedCourse, selectedSemester, admissions]);
 
   const fetchAdmissions = async () => {
     try {
@@ -113,9 +124,25 @@ const AdminDashboard = () => {
     }
   };
 
-  // Circular fetch/upload handlers removed (handled in AdminCirculars page)
+  const fetchCirculars = async () => {
+    try {
+      setLoadingCirculars(true);
+      const params = {};
+      if (circularFilterCourse) params.course = circularFilterCourse;
+      if (circularFilterSemester) params.semester = circularFilterSemester;
+      
+      const response = await api.get('/admin/circulars', { params });
+      const data = response.data?.data || [];
+      setCirculars(data);
+    } catch (err) {
+      console.error('Error fetching circulars:', err);
+      setCirculars([]);
+    } finally {
+      setLoadingCirculars(false);
+    }
+  };
 
-  const filterAdmissions = useCallback(() => {
+  const filterAdmissions = () => {
     let filtered = [...admissions];
 
     if (searchQuery) {
@@ -129,17 +156,11 @@ const AdminDashboard = () => {
 
     setFilteredAdmissions(filtered);
     setStats({ total: filtered.length });
-  }, [admissions, searchQuery, selectedCourse, selectedSemester]);
-
-  useEffect(() => {
-    filterAdmissions();
-  }, [filterAdmissions]);
+  };
 
   // Format date helper
   const formatDate = (dateObj) => {
-    if (!dateObj || !dateObj.day || !dateObj.month || !dateObj.year) {
-      return 'Not provided';
-    }
+    if (!dateObj) return 'Not provided';
     return `${dateObj.day}/${dateObj.month}/${dateObj.year}`;
   };
 
@@ -218,160 +239,46 @@ const AdminDashboard = () => {
     );
   };
 
-  // Upload handler removed (handled in AdminCirculars page)
+  // Circular upload handler
+  const handleUploadCircular = async () => {
+    if (!circularTitle || !circularFile || !circularCourse || !circularSemester) return;
+    setUploadingCircular(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', circularTitle);
+      formData.append('pdf', circularFile);
+      formData.append('course', circularCourse);
+      formData.append('semester', circularSemester);
+
+      const response = await api.post('/admin/circulars', formData, { // POST circular
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        setUploadSuccess('Circular uploaded successfully');
+        setCircularTitle('');
+        setCircularFile(null);
+        setCircularCourse('');
+        setCircularSemester('');
+        // Refresh circulars list
+        fetchCirculars();
+      } else {
+        setUploadError('Failed to upload circular');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.response?.data?.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingCircular(false);
+    }
+  };
 
   // View admission details dialog controls
   const handleViewDetails = (admission) => {
     setSelectedAdmission(admission);
     setOpenDialog(true);
-  };
-
-  // Edit admission handlers
-  const handleEditStudent = (admission) => {
-    console.log('Editing admission:', admission);
-    console.log('Date of Birth data:', admission.dateOfBirth);
-    setSelectedAdmission(admission);
-    setEditFormData({
-      nameEnglish: admission.nameEnglish || '',
-      nameHindi: admission.nameHindi || '',
-      email: admission.email || '',
-      mobileNumber: admission.mobileNumber || '',
-      course: admission.course || '',
-      semester: admission.semester || '',
-      nimcetRank: admission.nimcetRank || '',
-      catRank: admission.catRank || '',
-      gateRank: admission.gateRank || '',
-      category: admission.category || '',
-      permanentAddress: admission.permanentAddress || '',
-      state: admission.state || '',
-      district: admission.district || '',
-      pinCode: admission.pinCode || '',
-      correspondenceAddress: admission.correspondenceAddress || '',
-      correspondenceEmail: admission.correspondenceEmail || '',
-      fatherNameEnglish: admission.fatherNameEnglish || '',
-      fatherNameHindi: admission.fatherNameHindi || '',
-      fatherOccupation: admission.fatherOccupation || '',
-      fatherOfficeAddress: admission.fatherOfficeAddress || '',
-      fatherEmail: admission.fatherEmail || '',
-      fatherPhone: admission.fatherPhone || '',
-      motherNameEnglish: admission.motherNameEnglish || '',
-      motherNameHindi: admission.motherNameHindi || '',
-      motherOccupation: admission.motherOccupation || '',
-      motherOfficeAddress: admission.motherOfficeAddress || '',
-      motherEmail: admission.motherEmail || '',
-      motherPhone: admission.motherPhone || '',
-      remarks: admission.remarks || '',
-      dateOfBirth: admission.dateOfBirth && admission.dateOfBirth.year && admission.dateOfBirth.month && admission.dateOfBirth.day ? 
-        `${admission.dateOfBirth.year}-${String(admission.dateOfBirth.month).padStart(2, '0')}-${String(admission.dateOfBirth.day).padStart(2, '0')}` : ''
-    });
-    setEditFiles({});
-    setOpenEditDialog(true);
-  };
-
-  const handleEditFormChange = (field, value) => {
-    setEditFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleFileChange = (field, file) => {
-    setEditFiles(prev => ({
-      ...prev,
-      [field]: file
-    }));
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      setEditLoading(true);
-      setError(null);
-
-      // Basic validation
-      if (!editFormData.nameEnglish || !editFormData.email || !editFormData.mobileNumber) {
-        setError('Please fill in required fields: Name (English), Email, and Mobile Number');
-        setEditLoading(false);
-        return;
-      }
-
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(editFormData.email)) {
-        setError('Please enter a valid email address');
-        setEditLoading(false);
-        return;
-      }
-
-      // Mobile number validation (basic)
-      const mobileRegex = /^[0-9]{10}$/;
-      if (!mobileRegex.test(editFormData.mobileNumber)) {
-        setError('Please enter a valid 10-digit mobile number');
-        setEditLoading(false);
-        return;
-      }
-
-      const formData = new FormData();
-      
-      // Add form fields
-      Object.keys(editFormData).forEach(key => {
-        if (editFormData[key] !== '') {
-          if (key === 'dateOfBirth' && editFormData[key]) {
-            // Convert date string back to object format
-            const dateParts = editFormData[key].split('-');
-            console.log('Date parts:', dateParts);
-            if (dateParts.length === 3) {
-              formData.append('dateOfBirth[year]', dateParts[0]);
-              formData.append('dateOfBirth[month]', dateParts[1]);
-              formData.append('dateOfBirth[day]', dateParts[2]);
-              console.log('Added date fields to formData');
-            }
-          } else {
-            formData.append(key, editFormData[key]);
-          }
-        }
-      });
-
-      // Add files
-      Object.keys(editFiles).forEach(key => {
-        if (editFiles[key]) {
-          formData.append(key, editFiles[key]);
-        }
-      });
-
-      const response = await api.put(`/admin/admissions/${selectedAdmission._id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.success) {
-        // Update the admissions list
-        setAdmissions(prev => 
-          prev.map(admission => 
-            admission._id === selectedAdmission._id 
-              ? response.data.data 
-              : admission
-          )
-        );
-        
-        setOpenEditDialog(false);
-        setEditFormData({});
-        setEditFiles({});
-        alert('Student details updated successfully!');
-      }
-    } catch (err) {
-      console.error('Error updating student:', err);
-      setError('Failed to update student details. Please try again.');
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setOpenEditDialog(false);
-    setEditFormData({});
-    setEditFiles({});
-    setError(null);
   };
 
   // Admin credentials update handler
@@ -462,23 +369,6 @@ const AdminDashboard = () => {
             }}
           >
             Update Credentials
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => navigate('/admin/circulars')}
-            sx={{
-              mr: 2,
-              bgcolor: 'rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.3)',
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s',
-              },
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-            }}
-          >
-            Manage Circulars
           </Button>
           <Button
             variant="contained"
@@ -622,9 +512,213 @@ const AdminDashboard = () => {
           </Stack>
         </Paper>
 
-        {/* Circular upload moved to `/admin/circulars` */}
+        {/* Admin Upload Circular Form */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 4,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.5)',
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Upload Circular (PDF)
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                label="Title"
+                value={circularTitle}
+                onChange={(e) => setCircularTitle(e.target.value)}
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Course</InputLabel>
+                <Select 
+                  value={circularCourse} 
+                  onChange={(e) => setCircularCourse(e.target.value)} 
+                  label="Course"
+                >
+                  {COURSES.map((course) => (
+                    <MenuItem key={course} value={course}>
+                      {course}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Semester</InputLabel>
+                <Select 
+                  value={circularSemester} 
+                  onChange={(e) => setCircularSemester(e.target.value)} 
+                  label="Semester"
+                >
+                  {SEMESTERS.map((sem) => (
+                    <MenuItem key={sem} value={sem}>
+                      Semester {sem}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setCircularFile(e.target.files?.[0])}
+                style={{ marginBottom: 16 }}
+              />
+            </Grid>
+          </Grid>
+          {uploadError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {uploadError}
+            </Alert>
+          )}
+          {uploadSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {uploadSuccess}
+            </Alert>
+          )}
+          <Button
+            variant="contained"
+            disabled={uploadingCircular || !circularTitle || !circularFile || !circularCourse || !circularSemester}
+            onClick={handleUploadCircular}
+          >
+            {uploadingCircular ? 'Uploading...' : 'Upload'}
+          </Button>
+        </Paper>
 
-        {/* Circular management moved to `/admin/circulars` */}
+        {/* Circular Management Section */}
+        <Paper
+          sx={{
+            p: 3,
+            mb: 4,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.5)',
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Manage Circulars
+          </Typography>
+          
+          {/* Circular Filters */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            alignItems="center"
+            sx={{ mb: 3 }}
+          >
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Filter by Course</InputLabel>
+              <Select 
+                value={circularFilterCourse} 
+                onChange={(e) => setCircularFilterCourse(e.target.value)} 
+                label="Filter by Course"
+              >
+                <MenuItem value="">All Courses</MenuItem>
+                {COURSES.map((course) => (
+                  <MenuItem key={course} value={course}>
+                    {course}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Filter by Semester</InputLabel>
+              <Select 
+                value={circularFilterSemester} 
+                onChange={(e) => setCircularFilterSemester(e.target.value)} 
+                label="Filter by Semester"
+              >
+                <MenuItem value="">All Semesters</MenuItem>
+                {SEMESTERS.map((sem) => (
+                  <MenuItem key={sem} value={sem}>
+                    Semester {sem}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button 
+              variant="outlined" 
+              onClick={fetchCirculars}
+              disabled={loadingCirculars}
+            >
+              {loadingCirculars ? 'Loading...' : 'Apply Filters'}
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={() => {
+                setCircularFilterCourse('');
+                setCircularFilterSemester('');
+                fetchCirculars();
+              }}
+            >
+              Clear Filters
+            </Button>
+          </Stack>
+
+          {/* Circulars List */}
+          {loadingCirculars ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress />
+            </Box>
+          ) : circulars.length > 0 ? (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Course</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Semester</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Uploaded</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {circulars.map((circular) => (
+                    <TableRow key={circular._id} hover>
+                      <TableCell>{circular.title}</TableCell>
+                      <TableCell>{circular.course}</TableCell>
+                      <TableCell>Semester {circular.semester}</TableCell>
+                      <TableCell>
+                        {new Date(circular.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = `${api.defaults.baseURL}/${circular.pdfPath}`;
+                            link.target = '_blank';
+                            link.click();
+                          }}
+                        >
+                          View PDF
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography color="textSecondary" align="center" sx={{ py: 3 }}>
+              No circulars found
+            </Typography>
+          )}
+        </Paper>
 
         {/* Admissions Table */}
         <TableContainer
@@ -643,7 +737,6 @@ const AdminDashboard = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Roll No</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, fontSize: '1rem' }}>Course</TableCell>
@@ -663,9 +756,8 @@ const AdminDashboard = () => {
               ) : filteredAdmissions.length > 0 ? (
                 filteredAdmissions.map((admission) => (
                   <TableRow key={admission._id} hover>
-                    <TableCell>{admission.rollNo || '—'}</TableCell>
-                    <TableCell>{admission.nameEnglish || admission.userId?.name || '—'}</TableCell>
-                    <TableCell>{admission.email || admission.userId?.email || '—'}</TableCell>
+                    <TableCell>{admission.name}</TableCell>
+                    <TableCell>{admission.email}</TableCell>
                     <TableCell>{admission.course}</TableCell>
                     <TableCell>Semester {admission.semester}</TableCell>
                     <TableCell align="right">
@@ -674,23 +766,8 @@ const AdminDashboard = () => {
                         size="small"
                         startIcon={<VisibilityIcon />}
                         onClick={() => handleViewDetails(admission)}
-                        sx={{ mr: 1 }}
                       >
                         View Details
-                      </Button>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleEditStudent(admission)}
-                        sx={{
-                          background: 'linear-gradient(45deg, #4CAF50 30%, #45a049 90%)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #45a049 30%, #4CAF50 90%)',
-                          },
-                        }}
-                      >
-                        Edit
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -1094,418 +1171,6 @@ const AdminDashboard = () => {
               </>
             )}
           </DialogContent>
-        </Dialog>
-
-        {/* Edit Student Dialog */}
-        <Dialog
-          open={openEditDialog}
-          onClose={handleCancelEdit}
-          maxWidth="lg"
-          fullWidth
-          PaperProps={{
-            sx: {
-              minHeight: '80vh',
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.3)',
-            },
-          }}
-        >
-          <DialogTitle>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Box display="flex" alignItems="center">
-                <EditIcon sx={{ mr: 1.5, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Edit Student Details
-                </Typography>
-              </Box>
-              <IconButton onClick={handleCancelEdit} size="small">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </DialogTitle>
-          <Divider />
-          <DialogContent sx={{ maxHeight: '70vh', overflow: 'auto' }}>
-            {selectedAdmission && (
-              <Box>
-                <Tabs
-                  value={activeTab}
-                  onChange={(e, newValue) => setActiveTab(newValue)}
-                  sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
-                >
-                  <Tab
-                    label="Personal Information"
-                    value="details"
-                    icon={<PersonIcon />}
-                    iconPosition="start"
-                  />
-                  <Tab
-                    label="Documents"
-                    value="documents"
-                    icon={<FolderIcon />}
-                    iconPosition="start"
-                  />
-                </Tabs>
-
-                {activeTab === 'details' ? (
-                  <Box>
-                    {/* Course Information */}
-                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mb: 2 }}>
-                      Course Information
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                          <InputLabel>Course</InputLabel>
-                          <Select
-                            value={editFormData.course || ''}
-                            onChange={(e) => handleEditFormChange('course', e.target.value)}
-                            label="Course"
-                          >
-                            {COURSES.map((course) => (
-                              <MenuItem key={course} value={course}>
-                                {course}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                          <InputLabel>Semester</InputLabel>
-                          <Select
-                            value={editFormData.semester || ''}
-                            onChange={(e) => handleEditFormChange('semester', e.target.value)}
-                            label="Semester"
-                          >
-                            {SEMESTERS.map((sem) => (
-                              <MenuItem key={sem} value={sem}>
-                                Semester {sem}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="NIMCET Rank"
-                          value={editFormData.nimcetRank || ''}
-                          onChange={(e) => handleEditFormChange('nimcetRank', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="CAT Rank"
-                          value={editFormData.catRank || ''}
-                          onChange={(e) => handleEditFormChange('catRank', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="GATE Rank"
-                          value={editFormData.gateRank || ''}
-                          onChange={(e) => handleEditFormChange('gateRank', e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Personal Information */}
-                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mb: 2 }}>
-                      Personal Information
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Name (English) *"
-                          value={editFormData.nameEnglish || ''}
-                          onChange={(e) => handleEditFormChange('nameEnglish', e.target.value)}
-                          required
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Name (Hindi)"
-                          value={editFormData.nameHindi || ''}
-                          onChange={(e) => handleEditFormChange('nameHindi', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Email *"
-                          type="email"
-                          value={editFormData.email || ''}
-                          onChange={(e) => handleEditFormChange('email', e.target.value)}
-                          required
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mobile Number *"
-                          value={editFormData.mobileNumber || ''}
-                          onChange={(e) => handleEditFormChange('mobileNumber', e.target.value)}
-                          required
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Date of Birth"
-                          type="date"
-                          value={editFormData.dateOfBirth || ''}
-                          onChange={(e) => handleEditFormChange('dateOfBirth', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Category"
-                          value={editFormData.category || ''}
-                          onChange={(e) => handleEditFormChange('category', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Permanent Address"
-                          multiline
-                          rows={3}
-                          value={editFormData.permanentAddress || ''}
-                          onChange={(e) => handleEditFormChange('permanentAddress', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="State"
-                          value={editFormData.state || ''}
-                          onChange={(e) => handleEditFormChange('state', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="District"
-                          value={editFormData.district || ''}
-                          onChange={(e) => handleEditFormChange('district', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Pin Code"
-                          value={editFormData.pinCode || ''}
-                          onChange={(e) => handleEditFormChange('pinCode', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Correspondence Address"
-                          multiline
-                          rows={2}
-                          value={editFormData.correspondenceAddress || ''}
-                          onChange={(e) => handleEditFormChange('correspondenceAddress', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Correspondence Email"
-                          type="email"
-                          value={editFormData.correspondenceEmail || ''}
-                          onChange={(e) => handleEditFormChange('correspondenceEmail', e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Parents Information */}
-                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mb: 2 }}>
-                      Parents Information
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-                          Father's Details
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          label="Father's Name (English)"
-                          value={editFormData.fatherNameEnglish || ''}
-                          onChange={(e) => handleEditFormChange('fatherNameEnglish', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Father's Name (Hindi)"
-                          value={editFormData.fatherNameHindi || ''}
-                          onChange={(e) => handleEditFormChange('fatherNameHindi', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Father's Occupation"
-                          value={editFormData.fatherOccupation || ''}
-                          onChange={(e) => handleEditFormChange('fatherOccupation', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Father's Office Address"
-                          multiline
-                          rows={2}
-                          value={editFormData.fatherOfficeAddress || ''}
-                          onChange={(e) => handleEditFormChange('fatherOfficeAddress', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Father's Email"
-                          type="email"
-                          value={editFormData.fatherEmail || ''}
-                          onChange={(e) => handleEditFormChange('fatherEmail', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Father's Phone"
-                          value={editFormData.fatherPhone || ''}
-                          onChange={(e) => handleEditFormChange('fatherPhone', e.target.value)}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-                          Mother's Details
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          label="Mother's Name (English)"
-                          value={editFormData.motherNameEnglish || ''}
-                          onChange={(e) => handleEditFormChange('motherNameEnglish', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mother's Name (Hindi)"
-                          value={editFormData.motherNameHindi || ''}
-                          onChange={(e) => handleEditFormChange('motherNameHindi', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mother's Occupation"
-                          value={editFormData.motherOccupation || ''}
-                          onChange={(e) => handleEditFormChange('motherOccupation', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mother's Office Address"
-                          multiline
-                          rows={2}
-                          value={editFormData.motherOfficeAddress || ''}
-                          onChange={(e) => handleEditFormChange('motherOfficeAddress', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mother's Email"
-                          type="email"
-                          value={editFormData.motherEmail || ''}
-                          onChange={(e) => handleEditFormChange('motherEmail', e.target.value)}
-                          sx={{ mb: 2 }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Mother's Phone"
-                          value={editFormData.motherPhone || ''}
-                          onChange={(e) => handleEditFormChange('motherPhone', e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Remarks */}
-                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mb: 2 }}>
-                      Remarks
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      label="Remarks"
-                      multiline
-                      rows={3}
-                      value={editFormData.remarks || ''}
-                      onChange={(e) => handleEditFormChange('remarks', e.target.value)}
-                    />
-                  </Box>
-                ) : (
-                  <Box>
-                    <Typography variant="h6" gutterBottom sx={{ bgcolor: 'primary.main', color: 'white', p: 1, borderRadius: 1, mb: 2 }}>
-                      Document Uploads
-                    </Typography>
-                    <Grid container spacing={2}>
-                      {[
-                        { label: 'Photo', field: 'photo' },
-                        { label: 'Signature', field: 'signature' },
-                        { label: '10th Marksheet', field: 'marksheet10th' },
-                        { label: '10th Certificate', field: 'certificate10th' },
-                        { label: '12th Marksheet', field: 'marksheet12th' },
-                        { label: '12th Certificate', field: 'certificate12th' },
-                        { label: 'Graduation Marksheet', field: 'graduationMarksheet' },
-                        { label: 'Entrance Admit Card', field: 'entranceAdmitCard' },
-                        { label: 'Entrance Score Card', field: 'entranceScoreCard' },
-                        { label: 'Provisional Certificate', field: 'provisionalCertificate' },
-                        { label: 'Character Certificate', field: 'characterCertificate' },
-                        { label: 'Medical Certificate', field: 'medicalCertificate' },
-                        { label: 'Category Certificate', field: 'categoryCertificate' },
-                        { label: 'Defence Certificate', field: 'defenceCertificate' },
-                        { label: 'Aadhaar Card', field: 'aadhaarCard' },
-                        { label: 'PAN Card', field: 'panCard' }
-                      ].map((doc, index) => (
-                        <Grid item xs={12} md={4} key={index}>
-                          <Box sx={{ 
-                            p: 2, 
-                            border: '1px solid rgba(0,0,0,0.1)', 
-                            borderRadius: 1,
-                            bgcolor: 'rgba(255,255,255,0.5)',
-                          }}>
-                            <Typography variant="subtitle2" gutterBottom>{doc.label}:</Typography>
-                            <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={(e) => handleFileChange(doc.field, e.target.files[0])}
-                              style={{ width: '100%', marginBottom: '8px' }}
-                            />
-                            {selectedAdmission[doc.field] && (
-                              <Typography variant="caption" color="textSecondary">
-                                Current: {selectedAdmission[doc.field].split('/').pop()}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button 
-              onClick={handleCancelEdit} 
-              startIcon={<CancelIcon />}
-              disabled={editLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveEdit} 
-              variant="contained" 
-              color="primary"
-              startIcon={editLoading ? <CircularProgress size={20} /> : <SaveIcon />}
-              disabled={editLoading}
-            >
-              {editLoading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogActions>
         </Dialog>
 
         {/* Credentials Update Dialog */}

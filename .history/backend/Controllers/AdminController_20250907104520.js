@@ -193,7 +193,6 @@ const updateStudentAdmission = async (req, res) => {
     const files = req.files || {};
 
     console.log(`Admin updating admission record: ${id}`);
-    console.log('Received updates:', updates);
 
     // ✅ Find admission record
     const admission = await Admission.findById(id);
@@ -218,19 +217,6 @@ const updateStudentAdmission = async (req, res) => {
 
       updatedFilePaths[fieldName] = newPath;
     });
-
-    // ✅ Handle dateOfBirth field if it comes in bracket notation
-    if (updates['dateOfBirth[year]'] || updates['dateOfBirth[month]'] || updates['dateOfBirth[day]']) {
-      updates.dateOfBirth = {
-        year: updates['dateOfBirth[year]'] || '',
-        month: updates['dateOfBirth[month]'] || '',
-        day: updates['dateOfBirth[day]'] || ''
-      };
-      // Remove the bracket notation fields
-      delete updates['dateOfBirth[year]'];
-      delete updates['dateOfBirth[month]'];
-      delete updates['dateOfBirth[day]'];
-    }
 
     // ✅ Merge updates
     const updatedData = {
@@ -285,5 +271,4 @@ module.exports = {
   getAllCirculars,
   getAllCircularsForAdmin,
   deleteCircular,
-  updateStudentAdmission
 };
