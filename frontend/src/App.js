@@ -16,6 +16,8 @@ import UpdatePendingDocuments from './pages/UpdatePendingDocuments';
 import ViewAdmissionDetails from './pages/ViewAdmissionDetails';
 import Circular from './pages/Circular';
 import AdminCirculars from './pages/AdminCirculars';
+import AdminInbox from './pages/AdminInbox';
+import ChatWidget from './components/ChatWidget';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -52,7 +54,9 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminRoute element={<AdminDashboard />} />} />
         <Route path="/admin/settings" element={<AdminRoute element={<AdminSettings />} />} />
         <Route path="/admin/circulars" element={<AdminRoute element={<AdminCirculars />} />} />
+        <Route path="/admin/inbox" element={<AdminRoute element={<AdminInbox />} />} />
       </Routes>
+      <ChatWidget />
     </div>
   );
 }

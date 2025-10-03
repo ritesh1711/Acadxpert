@@ -13,6 +13,7 @@ const multer = require('multer');
 const authRoutes = require("./Routes/AuthRouter");
 const admissionRoutes = require("./Routes/AdmissionRouter");
 const adminRoutes = require("./Routes/AdminRouter"); // ✅ Moved down (still fine)
+const chatRoutes = require("./Routes/ChatRouter");
 
 const verifyDocumentAccess = require("./Middlewares/uploadMiddleware");
 
@@ -87,6 +88,7 @@ app.get('/test-file-access/:filename', (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/admission", admissionRoutes);
 app.use("/admin", adminRoutes); //
+app.use("/chat", chatRoutes);
 
 
 // Global error handler

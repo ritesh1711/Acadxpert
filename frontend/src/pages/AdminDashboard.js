@@ -85,6 +85,9 @@ const AdminDashboard = () => {
   const [editFiles, setEditFiles] = useState({});
   const [editLoading, setEditLoading] = useState(false);
 
+  // NEW: navigate to admin inbox
+  const goToInbox = () => navigate('/admin/inbox');
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -197,28 +200,20 @@ const AdminDashboard = () => {
     };
 
     return (
-      <Button
-        onClick={handleDownload}
-        variant="contained"
-        size="small"
-        startIcon={<DownloadIcon />}
-        sx={{
-          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-          color: 'white',
-          '&:hover': {
-            background: 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
-            transform: 'translateY(-2px)',
-            transition: 'transform 0.2s',
-          },
-          '&:disabled': { background: 'rgba(0,0,0,0.12)', boxShadow: 'none' },
-        }}
-      >
-        Download {label}
-      </Button>
+      <Button onClick={handleDownload} variant="outlined" size="small">Download</Button>
     );
   };
 
-  // Upload handler removed (handled in AdminCirculars page)
+  // Header with Inbox button
+  const HeaderBar = () => (
+    <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+      <Typography variant="h5" sx={{ fontWeight: 700 }}>Admin Dashboard</Typography>
+      <Box display="flex" gap={1}>
+        <Button variant="outlined" onClick={() => navigate('/admin/circulars')}>Circulars</Button>
+        <Button variant="contained" color="primary" onClick={goToInbox}>Inbox</Button>
+      </Box>
+    </Box>
+  );
 
   // View admission details dialog controls
   const handleViewDetails = (admission) => {
@@ -479,6 +474,23 @@ const AdminDashboard = () => {
             }}
           >
             Manage Circulars
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/admin/inbox')}
+            sx={{
+              mr: 2,
+              bgcolor: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.3)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s',
+              },
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}
+          >
+            Inbox
           </Button>
           <Button
             variant="contained"
