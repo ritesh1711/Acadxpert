@@ -91,6 +91,17 @@ export default function AdmissionForm() {
           return;
         }
 
+        // First check existence to avoid logging a 404 in normal cases
+        const existsRes = await axios.get('http://localhost:8000/admission/user/admission/exists', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!existsRes.data?.exists) {
+          return; // Not submitted yet
+        }
+
         const response = await axios.get('http://localhost:8000/admission/user/admission', {
           headers: {
             Authorization: `Bearer ${token}`
@@ -144,7 +155,10 @@ export default function AdmissionForm() {
 
         const res = await axios.get('http://localhost:8000/admission/precheck-unique', {
           params,
-          signal: controller.signal
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         });
 
         if (res.data && res.data.success) {

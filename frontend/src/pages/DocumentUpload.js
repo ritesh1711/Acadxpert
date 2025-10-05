@@ -88,6 +88,24 @@ export default function DocumentUpload() {
           return;
         }
 
+        // First check existence to avoid logging a 404 in normal cases
+        const existsRes = await axios.get('http://localhost:8000/admission/user/admission/exists', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!existsRes.data?.exists) {
+          // Load form data from localStorage if user hasn't submitted yet
+          const savedFormData = localStorage.getItem("admissionFormData");
+          if (savedFormData) {
+            setFormData(JSON.parse(savedFormData));
+          } else {
+            navigate("/admission");
+          }
+          return;
+        }
+
         const response = await axios.get('http://localhost:8000/admission/user/admission', {
           headers: {
             Authorization: `Bearer ${token}`

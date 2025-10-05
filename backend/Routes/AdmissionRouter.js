@@ -12,7 +12,7 @@ const {
   updateStudentAdmission   // ✅ new function
 } = require('../Controllers/AdminController');
 
-const { uploadMiddleware, submitAdmission } = require('../Controllers/AdmissionController');
+const { uploadMiddleware, submitAdmission, getAdmissionByUserId, checkAdmissionExistsForUser, precheckUnique } = require('../Controllers/AdmissionController');
 const authMiddleware = require('../Middlewares/authMiddleware');
 const adminMiddleware = require('../Middlewares/adminMiddleware'); // 👈 ensures only admins can use these routes
 
@@ -23,6 +23,9 @@ router.use(authMiddleware);
 // Admissions management (accessible to authenticated users)
 router.get('/admissions', getAllAdmissions);
 router.get('/admissions/:id', getAdmissionById);
+router.get('/user/admission', getAdmissionByUserId);
+router.get('/user/admission/exists', checkAdmissionExistsForUser);
+router.get('/precheck-unique', precheckUnique);
 
 // Admin-only admissions actions
 router.put('/admissions/:id/status', adminMiddleware, updateAdmissionStatus);

@@ -448,6 +448,18 @@ exports.getAdmissionByUserId = async (req, res) => {
   }
 };
 
+// Lightweight existence check to avoid 404s in normal flow
+exports.checkAdmissionExistsForUser = async (req, res) => {
+  try {
+    const admission = await Admission.findOne({ userId: req.user._id }).select('_id');
+    const exists = !!admission;
+    return res.status(200).json({ success: true, exists });
+  } catch (error) {
+    console.error('Error checking admission existence:', error);
+    return res.status(500).json({ success: false, message: 'Error checking admission existence', error: error.message });
+  }
+};
+
 // Update pending documents
 exports.updatePendingDocuments = async (req, res) => {
   try {

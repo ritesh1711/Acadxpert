@@ -66,6 +66,17 @@ export default function Home() {
             }
 
             try {
+                // First do a lightweight existence check to avoid 404 spam
+                const existsRes = await axios.get('http://localhost:8000/admission/user/admission/exists', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (!existsRes.data?.exists) {
+                    return; // user hasn't submitted yet; nothing to fetch
+                }
+
                 const response = await axios.get('http://localhost:8000/admission/user/admission', {
                     headers: {
                         Authorization: `Bearer ${token}`
